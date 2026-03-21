@@ -5,7 +5,7 @@
 
 > **Built for career transitioners.**
 > Whether you are a developer, analyst, or complete beginner — this repo is a structured, week-by-week roadmap to becoming an AI Engineer.
-> Follow the weekly schedule in order. Every folder = one week of focused learning.
+> Follow the weekly schedule in order. Every folder = one week of focused learning. 
 
 ---
 
