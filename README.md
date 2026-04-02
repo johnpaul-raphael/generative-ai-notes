@@ -110,14 +110,15 @@ Status legend:
 
 ### Week 3 — ML Hands-On Labs | `week-2-ml-hands-on/`
 
-**What you will learn:** Apply ML fundamentals with real datasets — build a house price predictor using Linear Regression and explore image data with NumPy.
+**What you will learn:** Apply ML fundamentals with real datasets — build a house price predictor using Linear Regression, predict patient recovery with Multi-Output Regression, and explore image data with NumPy.
 
 | File | Topic | Status |
 |---|---|---|
 | [house_price_prediction.ipynb](week-2-ml-hands-on/house_price_prediction.ipynb) | Linear Regression, train/test split, feature scaling, model evaluation (MAE, MSE, R²) | ✅ Done |
+| [multiple_regression_practice.ipynb](week-2-ml-hands-on/multiple_regression_practice.ipynb) | Multi-Output Regression, data leakage prevention, MultiOutputRegressor, dual-target prediction | ✅ Done |
 | [image_dataset_analyzer.ipynb](week-2-ml-hands-on/image_dataset_analyzer.ipynb) | Image as NumPy array, cropping, flipping, pixel manipulation | ✅ Done |
 
-**Key concepts:** scikit-learn pipeline · StandardScaler · Train/test split · Regression metrics · Image arrays · NumPy for vision
+**Key concepts:** scikit-learn pipeline · StandardScaler · Train/test split · Regression metrics · MultiOutputRegressor · Data leakage prevention · Image arrays · NumPy for vision
 
 ---
 
@@ -531,8 +532,10 @@ generative-ai-notes/
 │
 ├── week-2-ml-hands-on/                    ✅ Done (Week 3)
 │   ├── house_price_prediction.ipynb
+│   ├── multiple_regression_practice.ipynb
 │   ├── image_dataset_analyzer.ipynb
-│   └── house_price_data.csv
+│   ├── house_price_data.csv
+│   └── patient_recovery_data.csv
 ├── week-4-deep-learning/                  ⏳ Coming soon
 ├── week-5-transformers/                   ⏳ Coming soon
 ├── week-6-generative-ai-concepts/         ⏳ Coming soon
@@ -612,7 +615,7 @@ After Week 36:  You are an AI Engineer — ready for the job market
 |---|---|---|
 | Week 1 | `week-1-ai-ml-history/` | History of AI, Types of ML, Python Virtual Environments, Maths Refresher for ML |
 | Week 2 | `week-3-python-for-ai/` | NumPy basics, Pandas basics |
-| Week 3 | `week-2-ml-hands-on/` | House price prediction (Linear Regression), Image dataset analyzer |
+| Week 3 | `week-2-ml-hands-on/` | House price prediction (Linear Regression), Multiple regression practice (Multi-Output), Image dataset analyzer |
 
 ---
 
