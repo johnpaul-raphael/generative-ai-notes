@@ -28,13 +28,13 @@ By the end of this roadmap you will be able to:
 ## Progress Tracker
 
 ```
-Generative AI Path   [█░░░░░░░░░░░░░]  Week 1 of 14  — In Progress
+Generative AI Path   [███░░░░░░░░░░░]  Week 3 of 14  — In Progress
 Agentic AI Path      [░░░░░░░░░░░░░░]  Week 15 of 36  — Not Started
 ```
 
 | Path | Weeks | Done | Remaining |
 |---|---|---|---|
-| Generative AI | 14 weeks | 1 | 13 |
+| Generative AI | 14 weeks | 3 | 11 |
 | Agentic AI | 22 weeks | 0 | 22 |
 
 ---
@@ -86,41 +86,38 @@ Status legend:
 
 | File | Topic | Status |
 |---|---|---|
+| [00_maths_refresher_for_ml.ipynb](week-1-ai-ml-history/00_maths_refresher_for_ml.ipynb) | Arithmetic, exponents, logarithms, vectors, matrices, probability, sigmoid | ✅ Done |
 | [01_AI_ML_Introduction.md](week-1-ai-ml-history/01_AI_ML_Introduction.md) | History of AI, what is AI/ML/DL/GenAI, how ML evolved | ✅ Done |
 | [02_Types_of_Machine_Learning.md](week-1-ai-ml-history/02_Types_of_Machine_Learning.md) | Supervised, Unsupervised, Semi-supervised, RL, Self-supervised | ✅ Done |
 | [03_Python_Virtual_Environments.md](week-1-ai-ml-history/03_Python_Virtual_Environments.md) | venv, conda, project structure, .gitignore | ✅ Done |
 
-**Key concepts:** Alan Turing → Deep Blue → AlexNet → Transformers → ChatGPT · Training vs inference · Labels, features, models
+**Key concepts:** Alan Turing → Deep Blue → AlexNet → Transformers → ChatGPT · Training vs inference · Labels, features, models · Linear algebra · Probability basics · Sigmoid function
 
 ---
 
-### Week 2 — AI vs GenAI & NLP Basics | `week-2-ai-genai-nlp/`
+### Week 2 — Python for AI | `week-3-python-for-ai/`
 
-**What you will learn:** The difference between traditional AI and Generative AI, and the foundations of Natural Language Processing.
+**What you will learn:** The Python toolkit every AI engineer uses daily — NumPy for numerical computing and Pandas for data analysis.
 
 | File | Topic | Status |
 |---|---|---|
-| `01_AI_vs_GenAI.md` | Key differences, use cases, when to use which | ⏳ Upcoming |
-| `02_NLP_Fundamentals.md` | Tokenization, stemming, TF-IDF, word embeddings, NLP pipeline | ⏳ Upcoming |
-| `03_Lab_Sentiment_Analysis.md` | Build a sentiment classifier with classical NLP | ⏳ Upcoming |
+| [01_numpy_basics.ipynb](week-3-python-for-ai/01_numpy_basics.ipynb) | Arrays, indexing, slicing, math ops, statistics, reshaping, broadcasting, linear algebra | ✅ Done |
+| [02_pandas_basics.ipynb](week-3-python-for-ai/02_pandas_basics.ipynb) | Series, DataFrames, filtering, groupby, merging, string/datetime ops, pivot tables | ✅ Done |
 
-**Key concepts:** Generative vs discriminative models · Bag of words · TF-IDF · Word2Vec · NLP tasks
+**Key concepts:** Vectorised operations · Boolean masking · Broadcasting · GroupBy aggregation · Merge/join · Apply/map
 
 ---
 
-### Week 3 — Python for AI | `week-3-python-for-ai/`
+### Week 3 — ML Hands-On Labs | `week-2-ml-hands-on/`
 
-**What you will learn:** The Python toolkit every AI engineer uses daily — NumPy, Pandas, Regex, REST APIs, and web scraping.
+**What you will learn:** Apply ML fundamentals with real datasets — build a house price predictor using Linear Regression and explore image data with NumPy.
 
 | File | Topic | Status |
 |---|---|---|
-| `01_NumPy_Pandas.md` | Arrays, DataFrames, data manipulation at scale | ⏳ Upcoming |
-| `02_Regex_Text_Processing.md` | Pattern matching for cleaning and extracting text | ⏳ Upcoming |
-| `03_REST_APIs_JSON.md` | Calling LLM APIs, handling JSON responses | ⏳ Upcoming |
-| `04_Web_Scraping.md` | BeautifulSoup, Requests, scraping for NLP datasets | ⏳ Upcoming |
-| `05_Lab_Web_Data_NLP.md` | Collect and analyse web data for an NLP task | ⏳ Upcoming |
+| [house_price_prediction.ipynb](week-2-ml-hands-on/house_price_prediction.ipynb) | Linear Regression, train/test split, feature scaling, model evaluation (MAE, MSE, R²) | ✅ Done |
+| [image_dataset_analyzer.ipynb](week-2-ml-hands-on/image_dataset_analyzer.ipynb) | Image as NumPy array, cropping, flipping, pixel manipulation | ✅ Done |
 
-**Key concepts:** Vectorised operations · DataFrame joins · HTTP methods · JSON parsing · Robots.txt
+**Key concepts:** scikit-learn pipeline · StandardScaler · Train/test split · Regression metrics · Image arrays · NumPy for vision
 
 ---
 
@@ -523,12 +520,19 @@ generative-ai-notes/
 │   ── PATH 1: GENERATIVE AI ──────────────────────────────────
 │
 ├── week-1-ai-ml-history/                  ✅ Done
+│   ├── 00_maths_refresher_for_ml.ipynb
 │   ├── 01_AI_ML_Introduction.md
 │   ├── 02_Types_of_Machine_Learning.md
 │   └── 03_Python_Virtual_Environments.md
 │
-├── week-2-ai-genai-nlp/                   ⏳ Coming soon
-├── week-3-python-for-ai/                  ⏳ Coming soon
+├── week-3-python-for-ai/                  ✅ Done (Week 2)
+│   ├── 01_numpy_basics.ipynb
+│   └── 02_pandas_basics.ipynb
+│
+├── week-2-ml-hands-on/                    ✅ Done (Week 3)
+│   ├── house_price_prediction.ipynb
+│   ├── image_dataset_analyzer.ipynb
+│   └── house_price_data.csv
 ├── week-4-deep-learning/                  ⏳ Coming soon
 ├── week-5-transformers/                   ⏳ Coming soon
 ├── week-6-generative-ai-concepts/         ⏳ Coming soon
@@ -606,7 +610,9 @@ After Week 36:  You are an AI Engineer — ready for the job market
 
 | Week | Folder | Topics Added |
 |---|---|---|
-| Week 1 | `week-1-ai-ml-history/` | History of AI, Types of ML, Python Virtual Environments |
+| Week 1 | `week-1-ai-ml-history/` | History of AI, Types of ML, Python Virtual Environments, Maths Refresher for ML |
+| Week 2 | `week-3-python-for-ai/` | NumPy basics, Pandas basics |
+| Week 3 | `week-2-ml-hands-on/` | House price prediction (Linear Regression), Image dataset analyzer |
 
 ---
 
