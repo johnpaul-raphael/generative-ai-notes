@@ -1,0 +1,1040 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Neural Network Complete Lifecycle</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Segoe UI', Arial, sans-serif;
+    font-size: 13px;
+    color: #1a1a2e;
+    background: #fff;
+    line-height: 1.6;
+  }
+
+  .page {
+    width: 210mm;
+    min-height: 297mm;
+    margin: 0 auto 20px auto;
+    padding: 13mm 13mm 11mm 13mm;
+    background: #fff;
+    page-break-after: always;
+    position: relative;
+  }
+  .page:last-child { page-break-after: avoid; }
+
+  .doc-header {
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 60%, #0f3460 100%);
+    color: #fff;
+    padding: 16px 20px;
+    border-radius: 10px;
+    margin-bottom: 15px;
+  }
+  .doc-header h1 { font-size: 19px; font-weight: 700; }
+  .doc-header p  { font-size: 11px; color: #a8c6fa; margin-top: 4px; }
+
+  .phase-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 13px 0 8px 0;
+  }
+  .phase-badge {
+    font-size: 11px; font-weight: 700;
+    padding: 4px 11px; border-radius: 20px; color: #fff; white-space: nowrap;
+  }
+  .badge-blue   { background: #1565c0; }
+  .badge-orange { background: #e65100; }
+  .badge-red    { background: #b71c1c; }
+  .badge-green  { background: #1b5e20; }
+  .badge-purple { background: #4a148c; }
+  .badge-teal   { background: #004d40; }
+  .badge-grey   { background: #555; }
+
+  .phase-title { font-size: 14px; font-weight: 700; border-bottom: 2px solid; padding-bottom: 2px; }
+  .phase-title.blue   { color: #1565c0; border-color: #1565c0; }
+  .phase-title.orange { color: #e65100; border-color: #e65100; }
+  .phase-title.red    { color: #b71c1c; border-color: #b71c1c; }
+  .phase-title.green  { color: #1b5e20; border-color: #1b5e20; }
+  .phase-title.purple { color: #4a148c; border-color: #4a148c; }
+  .phase-title.teal   { color: #004d40; border-color: #004d40; }
+
+  .info-box {
+    border-radius: 7px; padding: 10px 13px; margin: 7px 0; font-size: 12px;
+  }
+  .box-blue   { background: #e3f2fd; border-left: 4px solid #1565c0; }
+  .box-orange { background: #fff3e0; border-left: 4px solid #e65100; }
+  .box-red    { background: #ffebee; border-left: 4px solid #b71c1c; }
+  .box-green  { background: #e8f5e9; border-left: 4px solid #1b5e20; }
+  .box-purple { background: #f3e5f5; border-left: 4px solid #4a148c; }
+  .box-teal   { background: #e0f2f1; border-left: 4px solid #004d40; }
+  .box-grey   { background: #f5f5f5; border-left: 4px solid #757575; }
+  .box-yellow { background: #fffde7; border-left: 4px solid #f9a825; }
+
+  /* annotated comment inside formula blocks */
+  .note-line {
+    background: #2d3a4a;
+    display: block;
+    padding: 2px 6px;
+    border-radius: 3px;
+    color: #ffd54f;
+    font-size: 10.5px;
+    margin: 2px 0;
+  }
+
+  .formula {
+    background: #1a1a2e;
+    color: #e8f4f8;
+    font-family: 'Courier New', monospace;
+    font-size: 11.5px;
+    border-radius: 7px;
+    padding: 10px 14px;
+    margin: 7px 0;
+    line-height: 1.75;
+    white-space: pre;
+  }
+  .formula .hi-yellow { color: #ffd54f; font-weight: 700; }
+  .formula .hi-green  { color: #a5d6a7; font-weight: 700; }
+  .formula .hi-red    { color: #ef9a9a; font-weight: 700; }
+  .formula .hi-blue   { color: #90caf9; font-weight: 700; }
+  .formula .hi-orange { color: #ffcc80; font-weight: 700; }
+  .formula .hi-white  { color: #ffffff; font-weight: 700; }
+  .formula .comment   { color: #78909c; font-style: italic; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 12px; margin: 7px 0; }
+  th { background: #1a1a2e; color: #fff; padding: 7px 10px; text-align: left; font-weight: 600; }
+  td { padding: 6px 10px; border-bottom: 1px solid #e0e0e0; vertical-align: top; }
+  tr:nth-child(even) td { background: #f9f9f9; }
+
+  .two-col { display: flex; gap: 12px; margin: 7px 0; }
+  .two-col > div { flex: 1; }
+
+  .divider { border: none; border-top: 1.5px dashed #ccc; margin: 12px 0; }
+
+  .lifecycle-flow {
+    display: flex; align-items: center; justify-content: center;
+    flex-wrap: wrap; gap: 0; margin: 10px 0;
+  }
+  .lf-box {
+    color: #fff; padding: 8px 10px; border-radius: 6px;
+    font-size: 10.5px; font-weight: 600; text-align: center; min-width: 68px;
+  }
+  .lf-box.blue   { background: #1565c0; }
+  .lf-box.orange { background: #e65100; }
+  .lf-box.red    { background: #c62828; }
+  .lf-box.green  { background: #2e7d32; }
+  .lf-box.purple { background: #6a1b9a; }
+  .lf-box.dark   { background: #1a1a2e; }
+  .lf-arrow { font-size: 16px; color: #888; padding: 0 3px; }
+
+  .stop-box {
+    background: linear-gradient(135deg, #1b5e20, #2e7d32);
+    color: #fff; border-radius: 8px; padding: 11px 15px; margin: 8px 0;
+  }
+  .stop-box h4 { font-size: 13px; margin-bottom: 6px; }
+  .stop-box ul { padding-left: 18px; font-size: 12px; line-height: 1.9; }
+
+  .page-footer {
+    position: absolute; bottom: 7mm; left: 13mm; right: 13mm;
+    display: flex; justify-content: space-between;
+    font-size: 10px; color: #999;
+    border-top: 1px solid #eee; padding-top: 4px;
+  }
+
+  .tag {
+    display: inline-block; border-radius: 4px;
+    padding: 1px 7px; font-size: 11px; font-weight: 600; margin: 1px;
+  }
+  .tag.blue   { background: #e3f2fd; color: #1565c0; border: 1px solid #90caf9; }
+  .tag.red    { background: #ffebee; color: #b71c1c; border: 1px solid #ef9a9a; }
+  .tag.green  { background: #e8f5e9; color: #1b5e20; border: 1px solid #a5d6a7; }
+  .tag.orange { background: #fff3e0; color: #e65100; border: 1px solid #ffcc80; }
+
+  /* annotation bubble */
+  .bubble {
+    background: #fffde7;
+    border: 1.5px solid #f9a825;
+    border-radius: 7px;
+    padding: 7px 11px;
+    font-size: 11.5px;
+    margin: 5px 0;
+    position: relative;
+  }
+  .bubble::before {
+    content: "💡";
+    margin-right: 5px;
+  }
+
+  @media print {
+    body { background: #fff; }
+    .page {
+      margin: 0; padding: 11mm 12mm 10mm 12mm;
+      width: 210mm; min-height: 297mm;
+      page-break-after: always; box-shadow: none;
+    }
+    .page:last-child { page-break-after: avoid; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════════════ PAGE 1 ══ -->
+<div class="page">
+
+  <div class="doc-header">
+    <h1>Neural Network — Complete Lifecycle With Real Numbers</h1>
+    <p>Every phase explained with data: Input → Forward Pass → Loss → Backpropagation → Weight Update → Convergence → Stop</p>
+  </div>
+
+  <!-- SECTION: WHAT ARE WE DOING -->
+  <div class="phase-header">
+    <span class="phase-badge badge-grey">OVERVIEW</span>
+    <span class="phase-title" style="color:#333;border-color:#333;">What Is Happening Here? (Read First)</span>
+  </div>
+
+  <div class="info-box box-yellow" style="font-size:12px;">
+    We are training a small neural network to predict if a patient is diabetic (1) or not (0), given two inputs: glucose level and BMI.<br><br>
+    The network starts with <b>random weights and knows nothing</b>. We show it one sample, it makes a wrong guess, we calculate how wrong it was,
+    trace back to find which weights caused the error, nudge those weights slightly, and repeat thousands of times until predictions become accurate.<br><br>
+    <b>This entire process — one guess → measure error → fix weights → repeat — IS what "training a neural network" means.</b>
+  </div>
+
+  <!-- NETWORK STRUCTURE -->
+  <div class="phase-header">
+    <span class="phase-badge badge-blue">STRUCTURE</span>
+    <span class="phase-title blue">Network Architecture — 3 Layers, 9 Learnable Parameters</span>
+  </div>
+
+  <div class="info-box box-blue">
+    <b>Input Layer:</b> 2 neurons (x1 = glucose, x2 = BMI) &nbsp;→&nbsp;
+    <b>Hidden Layer:</b> 1 layer with 2 neurons (H1, H2) using ReLU &nbsp;→&nbsp;
+    <b>Output Layer:</b> 1 neuron (O) using Sigmoid &nbsp;|&nbsp;
+    <b>Sample:</b> x1 = 0.5, x2 = 0.8, True label y = 1 (diabetic)
+  </div>
+
+  <!-- SVG DIAGRAM -->
+  <svg viewBox="0 0 700 275" xmlns="http://www.w3.org/2000/svg"
+       style="width:100%;border:1.5px solid #ddd;border-radius:8px;background:#fafcff;margin-bottom:8px;">
+
+    <!-- CONNECTION LINES with weight labels -->
+    <!-- x1→H1 -->
+    <line x1="125" y1="92"  x2="315" y2="105" stroke="#1565c0" stroke-width="1.8"/>
+    <rect x="185" y="74" width="32" height="16" rx="3" fill="#e3f2fd" stroke="#1565c0" stroke-width="1"/>
+    <text x="201" y="86" text-anchor="middle" font-size="10" fill="#1565c0" font-weight="bold">w11</text>
+    <text x="201" y="70" text-anchor="middle" font-size="9" fill="#888">= 0.3</text>
+
+    <!-- x1→H2 -->
+    <line x1="125" y1="92"  x2="315" y2="185" stroke="#1565c0" stroke-width="1.8"/>
+    <rect x="188" y="122" width="32" height="16" rx="3" fill="#e3f2fd" stroke="#1565c0" stroke-width="1"/>
+    <text x="204" y="134" text-anchor="middle" font-size="10" fill="#1565c0" font-weight="bold">w21</text>
+    <text x="204" y="120" text-anchor="middle" font-size="9" fill="#888">= 0.2</text>
+
+    <!-- x2→H1 -->
+    <line x1="125" y1="182" x2="315" y2="105" stroke="#0277bd" stroke-width="1.8"/>
+    <rect x="188" y="152" width="32" height="16" rx="3" fill="#e1f5fe" stroke="#0277bd" stroke-width="1"/>
+    <text x="204" y="164" text-anchor="middle" font-size="10" fill="#0277bd" font-weight="bold">w12</text>
+    <text x="204" y="150" text-anchor="middle" font-size="9" fill="#888">= 0.5</text>
+
+    <!-- x2→H2 -->
+    <line x1="125" y1="182" x2="315" y2="185" stroke="#0277bd" stroke-width="1.8"/>
+    <rect x="185" y="188" width="32" height="16" rx="3" fill="#e1f5fe" stroke="#0277bd" stroke-width="1"/>
+    <text x="201" y="200" text-anchor="middle" font-size="10" fill="#0277bd" font-weight="bold">w22</text>
+    <text x="201" y="186" text-anchor="middle" font-size="9" fill="#888">= 0.4</text>
+
+    <!-- H1→O -->
+    <line x1="373" y1="105" x2="563" y2="145" stroke="#e65100" stroke-width="2"/>
+    <rect x="435" y="108" width="32" height="16" rx="3" fill="#fff3e0" stroke="#e65100" stroke-width="1"/>
+    <text x="451" y="120" text-anchor="middle" font-size="10" fill="#e65100" font-weight="bold">w31</text>
+    <text x="451" y="106" text-anchor="middle" font-size="9" fill="#888">= 0.6</text>
+
+    <!-- H2→O -->
+    <line x1="373" y1="185" x2="563" y2="145" stroke="#e65100" stroke-width="2"/>
+    <rect x="435" y="163" width="32" height="16" rx="3" fill="#fff3e0" stroke="#e65100" stroke-width="1"/>
+    <text x="451" y="175" text-anchor="middle" font-size="10" fill="#e65100" font-weight="bold">w32</text>
+    <text x="451" y="161" text-anchor="middle" font-size="9" fill="#888">= 0.3</text>
+
+    <!-- INPUT LAYER label -->
+    <rect x="10" y="60" width="90" height="18" rx="4" fill="#1565c0"/>
+    <text x="55" y="73" text-anchor="middle" font-size="10" fill="#fff" font-weight="bold">INPUT LAYER</text>
+
+    <!-- x1 neuron -->
+    <circle cx="125" cy="92" r="24" fill="#1565c0" stroke="#0d47a1" stroke-width="2"/>
+    <text x="125" y="88" text-anchor="middle" font-size="12" fill="#fff" font-weight="bold">x1</text>
+    <text x="125" y="103" text-anchor="middle" font-size="10" fill="#bbdefb">= 0.5</text>
+    <text x="125" y="125" text-anchor="middle" font-size="9" fill="#555">(glucose)</text>
+
+    <!-- x2 neuron -->
+    <circle cx="125" cy="182" r="24" fill="#1565c0" stroke="#0d47a1" stroke-width="2"/>
+    <text x="125" y="178" text-anchor="middle" font-size="12" fill="#fff" font-weight="bold">x2</text>
+    <text x="125" y="193" text-anchor="middle" font-size="10" fill="#bbdefb">= 0.8</text>
+    <text x="125" y="215" text-anchor="middle" font-size="9" fill="#555">(BMI)</text>
+
+    <!-- HIDDEN LAYER label -->
+    <rect x="295" y="60" width="100" height="18" rx="4" fill="#2e7d32"/>
+    <text x="345" y="73" text-anchor="middle" font-size="10" fill="#fff" font-weight="bold">HIDDEN LAYER</text>
+
+    <!-- H1 neuron -->
+    <circle cx="344" cy="105" r="27" fill="#2e7d32" stroke="#1b5e20" stroke-width="2"/>
+    <text x="344" y="101" text-anchor="middle" font-size="12" fill="#fff" font-weight="bold">H1</text>
+    <text x="344" y="116" text-anchor="middle" font-size="9.5" fill="#c8e6c9">ReLU</text>
+    <!-- H1 bias -->
+    <rect x="362" y="70" width="42" height="16" rx="3" fill="#fffde7" stroke="#f9a825" stroke-width="1"/>
+    <text x="383" y="82" text-anchor="middle" font-size="9" fill="#e65100" font-weight="bold">bias=0.1</text>
+
+    <!-- H2 neuron -->
+    <circle cx="344" cy="185" r="27" fill="#2e7d32" stroke="#1b5e20" stroke-width="2"/>
+    <text x="344" y="181" text-anchor="middle" font-size="12" fill="#fff" font-weight="bold">H2</text>
+    <text x="344" y="196" text-anchor="middle" font-size="9.5" fill="#c8e6c9">ReLU</text>
+    <!-- H2 bias -->
+    <rect x="362" y="196" width="42" height="16" rx="3" fill="#fffde7" stroke="#f9a825" stroke-width="1"/>
+    <text x="383" y="208" text-anchor="middle" font-size="9" fill="#e65100" font-weight="bold">bias=0.2</text>
+
+    <!-- OUTPUT LAYER label -->
+    <rect x="533" y="108" width="100" height="18" rx="4" fill="#6a1b9a"/>
+    <text x="583" y="121" text-anchor="middle" font-size="10" fill="#fff" font-weight="bold">OUTPUT LAYER</text>
+
+    <!-- O neuron -->
+    <circle cx="583" cy="165" r="27" fill="#6a1b9a" stroke="#4a148c" stroke-width="2"/>
+    <text x="583" y="161" text-anchor="middle" font-size="12" fill="#fff" font-weight="bold">O</text>
+    <text x="583" y="176" text-anchor="middle" font-size="9.5" fill="#e1bee7">Sigmoid</text>
+    <!-- O bias -->
+    <rect x="600" y="128" width="42" height="16" rx="3" fill="#fffde7" stroke="#f9a825" stroke-width="1"/>
+    <text x="621" y="140" text-anchor="middle" font-size="9" fill="#e65100" font-weight="bold">bias=0.1</text>
+
+    <!-- Output arrow -->
+    <line x1="610" y1="165" x2="648" y2="165" stroke="#4a148c" stroke-width="2"/>
+    <polygon points="648,160 660,165 648,170" fill="#4a148c"/>
+    <text x="665" y="162" font-size="12" fill="#4a148c" font-weight="bold">ŷ</text>
+    <text x="663" y="176" font-size="10" fill="#6a1b9a">= 0.663</text>
+
+    <!-- Key notes at bottom -->
+    <rect x="10" y="237" width="680" height="32" rx="5" fill="#f5f5f5" stroke="#ddd" stroke-width="1"/>
+    <text x="18" y="249" font-size="9.5" fill="#333" font-weight="bold">Each ARROW = one weight  |</text>
+    <text x="155" y="249" font-size="9.5" fill="#555"> w11 only belongs to H1.  w21 only belongs to H2.  Same inputs, different weights → each neuron learns something different.</text>
+    <text x="18" y="263" font-size="9.5" fill="#333" font-weight="bold">Each NEURON = one bias  |</text>
+    <text x="150" y="263" font-size="9.5" fill="#555"> Bias lets the neuron fire even when all inputs are zero.  Think of it as the y-intercept in  y = mx + c.</text>
+  </svg>
+
+  <!-- PARAMETERS TABLE -->
+  <div class="two-col">
+    <div>
+      <table>
+        <tr><th colspan="3">All 9 Learnable Parameters</th></tr>
+        <tr><th>Param</th><th>Connects</th><th>Start Value</th></tr>
+        <tr><td><b>w11</b></td><td>x1 → H1</td><td>0.3</td></tr>
+        <tr><td><b>w12</b></td><td>x2 → H1</td><td>0.5</td></tr>
+        <tr><td><b>b_H1</b></td><td>bias of H1</td><td>0.1</td></tr>
+        <tr><td><b>w21</b></td><td>x1 → H2</td><td>0.2</td></tr>
+        <tr><td><b>w22</b></td><td>x2 → H2</td><td>0.4</td></tr>
+        <tr><td><b>b_H2</b></td><td>bias of H2</td><td>0.2</td></tr>
+        <tr><td><b>w31</b></td><td>H1 → O</td><td>0.6</td></tr>
+        <tr><td><b>w32</b></td><td>H2 → O</td><td>0.3</td></tr>
+        <tr><td><b>b_O</b></td><td>bias of O</td><td>0.1</td></tr>
+      </table>
+    </div>
+    <div>
+      <div class="info-box box-purple" style="font-size:11.5px;">
+        <b>Formula for counting weights:</b><br>
+        <code style="font-size:12.5px; color:#4a148c;">weights = left neurons × right neurons</code><br><br>
+        Input(2) → Hidden(2) = 2×2 = <b>4 weights</b><br>
+        Hidden(2) → Output(1) = 2×1 = <b>2 weights</b><br>
+        Biases = one per neuron = <b>3 biases</b><br>
+        <b>Total = 9 parameters</b> — ALL updated by backprop
+      </div>
+      <div class="info-box box-grey" style="font-size:11.5px; margin-top:6px;">
+        <b>Learning Rate η = 0.1</b> — set by YOU, not learned.<br>
+        Controls how big a step to take when updating weights.<br>
+        Too high → overshoots. Too low → too slow.<br>
+        Adam optimizer default = 0.001 (best starting point).
+      </div>
+    </div>
+  </div>
+
+  <div class="page-footer">
+    <span>Neural Network Complete Lifecycle</span>
+    <span>Page 1 of 6 — Network Structure &amp; Parameters</span>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════ PAGE 2 ══ -->
+<div class="page">
+
+  <div class="doc-header">
+    <h1>Phase 1 — Forward Propagation &nbsp;<span style="font-size:12px;font-weight:400;color:#a8c6fa;">(Left → Right: The Network Makes Its Guess)</span></h1>
+    <p>Input data flows layer by layer. Each neuron does two things: (1) weighted sum, (2) activation function. Result = prediction ŷ.</p>
+  </div>
+
+  <div class="bubble" style="margin-bottom:10px;">
+    In forward propagation, we are NOT learning yet. We are just asking: <b>"With the current weights, what does the network predict?"</b>
+    The network starts with random weights, so the first prediction will be wrong — that is expected and normal.
+  </div>
+
+  <!-- H1 CALCULATION -->
+  <div class="phase-header">
+    <span class="phase-badge badge-blue">STEP 1</span>
+    <span class="phase-title blue">Hidden Neuron H1 — Receives From Both x1 and x2</span>
+  </div>
+
+  <div class="formula"><span class="hi-orange">STEP A — Weighted Sum (z_H1):</span>
+  <span class="comment">↳ Each input is multiplied by its OWN weight, then all are added together plus bias</span>
+
+  z_H1 = (w11 × x1)  +  (w12 × x2)  +  bias_H1
+       = (0.3  × 0.5) + (0.5  × 0.8) + 0.1
+       = <span class="hi-yellow"> 0.15   +   0.40   +  0.10</span>
+       = <span class="hi-green">0.65</span>
+
+  <span class="comment">↳ z_H1 = 0.65 means: "the raw signal strength arriving at H1 before activation"</span>
+  <span class="comment">↳ We SAVE z_H1 = 0.65  ← this value is needed again during backward pass</span>
+
+<span class="hi-orange">STEP B — ReLU Activation:</span>
+  <span class="comment">↳ ReLU decides: should this neuron "fire" or stay silent?</span>
+
+  H1_output = max(0, z_H1) = max(0, 0.65) = <span class="hi-green">0.65</span>  ✅ positive → neuron fires, passes through unchanged
+
+  <span class="comment">↳ If z_H1 were -0.3, output = max(0, -0.3) = 0 → neuron stays silent (dead neuron)</span></div>
+
+  <!-- H2 CALCULATION -->
+  <div class="phase-header">
+    <span class="phase-badge badge-blue">STEP 2</span>
+    <span class="phase-title blue">Hidden Neuron H2 — Same Process, Different Weights</span>
+  </div>
+
+  <div class="formula"><span class="hi-orange">STEP A — Weighted Sum (z_H2):</span>
+  <span class="comment">↳ H2 has its OWN weights w21 and w22 — completely independent of H1's weights</span>
+  <span class="comment">↳ Both H1 and H2 receive the SAME inputs x1 and x2, but different weights make them learn different patterns</span>
+
+  z_H2 = (w21 × x1)  +  (w22 × x2)  +  bias_H2
+       = (0.2  × 0.5) + (0.4  × 0.8) + 0.2
+       = <span class="hi-yellow"> 0.10   +   0.32   +  0.20</span>
+       = <span class="hi-green">0.62</span>
+
+  <span class="comment">↳ We SAVE z_H2 = 0.62  ← needed during backward pass ReLU gate check</span>
+
+<span class="hi-orange">STEP B — ReLU Activation:</span>
+
+  H2_output = max(0, z_H2) = max(0, 0.62) = <span class="hi-green">0.62</span>  ✅ positive → passes through</div>
+
+  <div class="bubble">
+    <b>Why do we "save" z values?</b> During backward propagation, we need to check "was this neuron active during forward pass?"
+    If z &gt; 0 → it was active → gradient passes through. If z ≤ 0 → it was silent → gradient is blocked.
+    The network stores all z values in memory during forward pass for use in backward pass.
+  </div>
+
+  <hr class="divider">
+
+  <!-- OUTPUT CALCULATION -->
+  <div class="phase-header">
+    <span class="phase-badge badge-purple">STEP 3</span>
+    <span class="phase-title purple">Output Neuron O — Produces Final Prediction ŷ</span>
+  </div>
+
+  <div class="formula"><span class="hi-orange">STEP A — Weighted Sum (z_O):</span>
+  <span class="comment">↳ The output neuron receives H1_output and H2_output (not the original inputs x1, x2)</span>
+  <span class="comment">↳ It applies its own weights w31 and w32 to combine the hidden layer's outputs</span>
+
+  z_O = (w31 × H1_output)  +  (w32 × H2_output)  +  bias_O
+      = (0.6  ×   0.65  )  +  (0.3  ×   0.62  )  +  0.1
+      = <span class="hi-yellow"> 0.390          +    0.186          +  0.10</span>
+      = <span class="hi-green">0.676</span>
+
+<span class="hi-orange">STEP B — Sigmoid Activation (used ONLY at output for binary classification):</span>
+  <span class="comment">↳ Sigmoid squashes ANY number into range (0, 1) — perfect for expressing probability</span>
+  <span class="comment">↳ Formula: 1 / (1 + e^(-z))   where e ≈ 2.718 (Euler's number)</span>
+
+  ŷ = 1 / (1 + e<sup>(-0.676)</sup>)
+    = 1 / (1 + 0.509)
+    = 1 / 1.509
+    = <span class="hi-green">0.663</span>
+
+  <span class="comment">↳ ŷ = 0.663 means the model is 66.3% confident this person is diabetic</span>
+  <span class="comment">↳ Decision rule: if ŷ > 0.5 → predict "diabetic (1)", else → predict "healthy (0)"</span>
+  <span class="comment">↳ So model DOES predict diabetic — but with only 66.3% confidence, when real answer is 100% (y=1)</span></div>
+
+  <!-- FORWARD PASS SUMMARY -->
+  <div class="phase-header">
+    <span class="phase-badge badge-grey">SUMMARY</span>
+    <span class="phase-title" style="color:#333;border-color:#333;">Forward Pass — All Values Produced and Stored</span>
+  </div>
+
+  <table>
+    <tr><th>Value Computed</th><th>Result</th><th>Why Stored?</th><th>Used In</th></tr>
+    <tr><td><b>z_H1</b> = weighted sum at H1</td><td>0.65</td><td>ReLU gate check in backprop: was H1 active?</td><td>Backward pass Step B</td></tr>
+    <tr><td><b>H1_output</b> = ReLU(z_H1)</td><td>0.65</td><td>Used to compute gradient of w31</td><td>Backward pass Step 3A</td></tr>
+    <tr><td><b>z_H2</b> = weighted sum at H2</td><td>0.62</td><td>ReLU gate check in backprop: was H2 active?</td><td>Backward pass Step B</td></tr>
+    <tr><td><b>H2_output</b> = ReLU(z_H2)</td><td>0.62</td><td>Used to compute gradient of w32</td><td>Backward pass Step 3A</td></tr>
+    <tr><td><b>z_O</b> = weighted sum at O</td><td>0.676</td><td>Used by Sigmoid</td><td>Loss calculation</td></tr>
+    <tr><td><b>ŷ</b> = Sigmoid(z_O) = prediction</td><td>0.663</td><td>Compared against real label y=1 to compute loss</td><td>Loss function</td></tr>
+  </table>
+
+  <div class="info-box box-red" style="font-size:12px;">
+    <b>Result:</b> ŷ = 0.663 &nbsp;|&nbsp; Real label y = 1 &nbsp;|&nbsp;
+    The model is wrong — prediction is 0.337 below the target. &nbsp;
+    <b>Next step: measure exactly HOW wrong → Loss Function.</b>
+  </div>
+
+  <div class="page-footer">
+    <span>Neural Network Complete Lifecycle</span>
+    <span>Page 2 of 6 — Phase 1: Forward Propagation</span>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════ PAGE 3 ══ -->
+<div class="page">
+
+  <div class="doc-header">
+    <h1>Phase 2 — Loss Function &nbsp;<span style="font-size:12px;font-weight:400;color:#a8c6fa;">(The Report Card: How Wrong Are We?)</span></h1>
+    <p>Loss = a single number measuring the gap between prediction ŷ and real label y. The entire goal of training = make this number as small as possible.</p>
+  </div>
+
+  <div class="bubble">
+    Think of loss as a score on an exam. Loss = 0 means perfect. Loss = 2.0 means terrible. After each batch of records,
+    we compute the average loss across the batch, then backpropagate to reduce it.
+    <b>The loss function is the "north star" — everything the network does is aimed at minimising it.</b>
+  </div>
+
+  <!-- LOSS FUNCTION -->
+  <div class="phase-header">
+    <span class="phase-badge badge-orange">PHASE 2</span>
+    <span class="phase-title orange">Binary Cross-Entropy Loss Calculation</span>
+  </div>
+
+  <div class="info-box box-orange">
+    We use <b>Binary Cross-Entropy</b> for binary classification (0 or 1 output).
+    It punishes <b>confident wrong answers very heavily</b> — much harder than MSE.
+    If the model says 99% confident but is wrong → loss is huge (4.6). If model says 51% → loss is small (0.67).
+  </div>
+
+  <div class="formula"><span class="hi-orange">Formula:</span>   L = -[ y × log(ŷ) + (1-y) × log(1-ŷ) ]
+
+  <span class="comment">↳ Two terms: first handles when real label is 1, second handles when real label is 0</span>
+  <span class="comment">↳ Since y = 1 here: (1-y) = 0, so the entire second term = 0 and disappears</span>
+
+  L = -[ 1 × log(0.663)  +  0 × log(1-0.663) ]
+    = -[ 1 × log(0.663)  +  0 ]
+    = -[ log(0.663) ]
+    = -[ <span class="hi-yellow">-0.411</span> ]
+    = <span class="hi-red">0.411</span>
+
+  <span class="comment">↳ log(0.663) is negative because log of any number less than 1 is negative</span>
+  <span class="comment">↳ The minus sign in front flips it to positive → loss is always ≥ 0</span></div>
+
+  <div class="info-box box-grey" style="font-size:12px;">
+    <b>Interpreting loss values:</b> &nbsp;&nbsp;
+    ŷ = 1.000 (perfect) → Loss = 0.000 &nbsp;✅ &nbsp;&nbsp;
+    ŷ = 0.900 (close) &nbsp;&nbsp;→ Loss = 0.105 &nbsp;&nbsp;
+    ŷ = 0.663 (our case) → Loss = 0.411 &nbsp;&nbsp;
+    ŷ = 0.100 (very wrong) → Loss = 2.303 &nbsp;❌
+  </div>
+
+  <hr class="divider">
+
+  <!-- BACKPROP PHASE -->
+  <div class="doc-header" style="margin-top:5px; padding:12px 18px;">
+    <h1 style="font-size:17px;">Phase 3 — Backward Propagation &nbsp;<span style="font-size:12px;font-weight:400;color:#a8c6fa;">(Right → Left: Tracing the Blame)</span></h1>
+    <p>We now ask: "Which weights caused this loss of 0.411, and by exactly how much?" Backprop answers this for every single weight using the Chain Rule.</p>
+  </div>
+
+  <div class="bubble">
+    <b>The Chain Rule in plain English:</b> Loss depends on the output. Output depends on hidden layer. Hidden layer depends on input weights.
+    To find how much w11 caused the loss, we multiply the gradients at each layer together — like passing a blame signal backwards through a chain of people.
+  </div>
+
+  <!-- BACKPROP OUTPUT -->
+  <div class="phase-header">
+    <span class="phase-badge badge-red">STEP 3A</span>
+    <span class="phase-title red">Output Layer — Blame Calculated First (Closest to Loss)</span>
+  </div>
+
+  <div class="formula"><span class="hi-orange">Output blame signal δ_O:</span>
+  <span class="comment">↳ Shortcut formula for Binary Cross-Entropy + Sigmoid (saves many calculation steps)</span>
+  <span class="comment">↳ This formula is derived by combining the chain rule for CE loss and sigmoid derivative</span>
+
+  <span class="hi-red">δ_O</span>  =  ŷ - y  =  0.663 - 1.0  =  <span class="hi-red">-0.337</span>
+
+  <span class="comment">↳ Negative value (-0.337) means: prediction was BELOW the target</span>
+  <span class="comment">↳ The network needs to push output HIGHER → so weights will INCREASE after update</span>
+  <span class="comment">↳ If δ_O were positive, weights would decrease. Sign of δ tells direction of correction.</span>
+
+<span class="hi-orange">Now compute gradient for each output weight:</span>
+  <span class="comment">↳ Formula: gradient = blame_signal × (the input this weight was multiplying)</span>
+  <span class="comment">↳ Reasoning: a weight that multiplied a bigger value is MORE responsible for the output</span>
+
+  ∂L/∂w31  =  δ_O × H1_output  =  -0.337 × <span class="hi-blue">0.65</span>  =  <span class="hi-red">-0.219</span>
+  ∂L/∂w32  =  δ_O × H2_output  =  -0.337 × <span class="hi-blue">0.62</span>  =  <span class="hi-red">-0.209</span>
+  ∂L/∂b_O  =  δ_O × 1          =  -0.337 × 1    =  <span class="hi-red">-0.337</span>
+  <span class="comment">↳ bias gradient = δ_O × 1, because bias is always multiplied by 1 (it is a constant)</span></div>
+
+  <!-- BACKPROP HIDDEN -->
+  <div class="phase-header">
+    <span class="phase-badge badge-red">STEP 3B</span>
+    <span class="phase-title red">Hidden Layer — Blame Passes Backwards Through Chain Rule</span>
+  </div>
+
+  <div class="formula"><span class="hi-orange">Pass blame backwards to each hidden neuron:</span>
+  <span class="comment">↳ Each hidden neuron's blame = output blame × the weight that connected it to output</span>
+  <span class="comment">↳ H1 is connected to output via w31=0.6 (larger weight → more blame)</span>
+  <span class="comment">↳ H2 is connected to output via w32=0.3 (smaller weight → less blame)</span>
+
+  Blame at H1  =  δ_O × w31  =  -0.337 × 0.6  =  <span class="hi-red">-0.2022</span>
+  Blame at H2  =  δ_O × w32  =  -0.337 × 0.3  =  <span class="hi-red">-0.1011</span>
+
+<span class="hi-orange">Apply ReLU Gate Check (the backward ReLU rule):</span>
+  <span class="comment">↳ ReLU was used in forward pass → must apply its derivative in backward pass</span>
+  <span class="comment">↳ ReLU derivative: 1 if z > 0 (gate was open) | 0 if z ≤ 0 (gate was closed = dead neuron)</span>
+  <span class="comment">↳ We check the z values we SAVED during forward pass</span>
+
+  H1: z_H1 = <span class="hi-blue">0.65</span> &gt; 0  →  ReLU gradient = <span class="hi-green">1</span>  →  δ_H1 = -0.2022 × 1 = <span class="hi-red">-0.2022</span>  ✅ passes through
+  H2: z_H2 = <span class="hi-blue">0.62</span> &gt; 0  →  ReLU gradient = <span class="hi-green">1</span>  →  δ_H2 = -0.1011 × 1 = <span class="hi-red">-0.1011</span>  ✅ passes through
+
+  <span class="comment">↳ If z were negative (e.g., z=-0.3): ReLU gradient = 0 → δ = 0 → w11,w12 never update = "dead neuron"</span>
+  <span class="comment">↳ This is why ReLU avoids vanishing gradient: gradient = 1, not a fraction like Sigmoid (max 0.25)</span>
+
+<span class="hi-orange">Compute gradient for each hidden weight:</span>
+  <span class="comment">↳ Same formula: gradient = blame_signal × (input to that weight)</span>
+
+  ∂L/∂w11  =  δ_H1 × x1  =  -0.2022 × <span class="hi-blue">0.5</span>  =  <span class="hi-red">-0.1011</span>
+  ∂L/∂w12  =  δ_H1 × x2  =  -0.2022 × <span class="hi-blue">0.8</span>  =  <span class="hi-red">-0.1618</span>
+  ∂L/∂b_H1 =  δ_H1 × 1   =  -0.2022 × 1    =  <span class="hi-red">-0.2022</span>
+
+  ∂L/∂w21  =  δ_H2 × x1  =  -0.1011 × <span class="hi-blue">0.5</span>  =  <span class="hi-red">-0.0506</span>
+  ∂L/∂w22  =  δ_H2 × x2  =  -0.1011 × <span class="hi-blue">0.8</span>  =  <span class="hi-red">-0.0809</span>
+  ∂L/∂b_H2 =  δ_H2 × 1   =  -0.1011 × 1    =  <span class="hi-red">-0.1011</span></div>
+
+  <div class="stop-box">
+    <h4>🛑 When and Why Does Backpropagation Stop?</h4>
+    <ul>
+      <li>Backprop stops <b>at the Input Layer</b> — because x1 and x2 are your raw data (patient's glucose, BMI). You cannot change real-world data.</li>
+      <li>Only <b>weights and biases inside the network</b> are updated — these are the network's "knowledge".</li>
+      <li>We have now computed gradients for all 9 parameters (w11, w12, b_H1, w21, w22, b_H2, w31, w32, b_O).</li>
+      <li><b>Backprop is complete. Next step: use these gradients to update all 9 weights.</b></li>
+    </ul>
+  </div>
+
+  <div class="page-footer">
+    <span>Neural Network Complete Lifecycle</span>
+    <span>Page 3 of 6 — Phase 2: Loss &amp; Phase 3: Backpropagation</span>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════ PAGE 4 ══ -->
+<div class="page">
+
+  <div class="doc-header">
+    <h1>Phase 4 — Weight Update &nbsp;<span style="font-size:12px;font-weight:400;color:#a8c6fa;">(Gradient Descent: Apply the Corrections)</span></h1>
+    <p>Now use the gradients computed in backprop to nudge every weight slightly in the direction that reduces loss.</p>
+  </div>
+
+  <div class="bubble">
+    <b>Key insight about the sign:</b> A <b>negative gradient</b> means increasing this weight would REDUCE the loss → so we increase it.
+    A <b>positive gradient</b> means increasing this weight would INCREASE the loss → so we decrease it.
+    The minus sign in the formula automatically handles both cases:
+    <code style="font-size:12px;">W_new = W_old − (η × gradient)</code>
+  </div>
+
+  <!-- WEIGHT UPDATE FORMULA -->
+  <div class="phase-header">
+    <span class="phase-badge badge-green">PHASE 4</span>
+    <span class="phase-title green">Weight Update Formula Applied to All 9 Parameters</span>
+  </div>
+
+  <div class="formula"><span class="hi-green">Formula:</span>  W_new = W_old  −  (η × gradient)
+  <span class="comment">↳ η = learning rate = 0.1 (your choice, set before training starts)</span>
+  <span class="comment">↳ Negative gradient → W_new > W_old (weight increases) — needed here because ŷ was too low</span>
+  <span class="comment">↳ Positive gradient → W_new < W_old (weight decreases) — used when prediction is too high</span>
+
+<span class="hi-green">── OUTPUT LAYER WEIGHTS ──</span>
+  <span class="comment">↳ These sit between hidden layer and output — updated first because they're closest to the loss</span>
+
+  w31:  0.600  −  (0.1 × <span class="hi-red">-0.219</span>)  =  0.600  +  0.0219  =  <span class="hi-green">0.6219</span>  ↑ increased
+  w32:  0.300  −  (0.1 × <span class="hi-red">-0.209</span>)  =  0.300  +  0.0209  =  <span class="hi-green">0.3209</span>  ↑ increased
+  b_O:  0.100  −  (0.1 × <span class="hi-red">-0.337</span>)  =  0.100  +  0.0337  =  <span class="hi-green">0.1337</span>  ↑ increased
+
+<span class="hi-green">── HIDDEN LAYER WEIGHTS (H1) ──</span>
+  <span class="comment">↳ These sit between input layer and hidden layer H1</span>
+
+  w11:  0.300  −  (0.1 × <span class="hi-red">-0.1011</span>) =  0.300  +  0.0101  =  <span class="hi-green">0.3101</span>  ↑
+  w12:  0.500  −  (0.1 × <span class="hi-red">-0.1618</span>) =  0.500  +  0.0162  =  <span class="hi-green">0.5162</span>  ↑
+  b_H1: 0.100  −  (0.1 × <span class="hi-red">-0.2022</span>) =  0.100  +  0.0202  =  <span class="hi-green">0.1202</span>  ↑
+
+<span class="hi-green">── HIDDEN LAYER WEIGHTS (H2) ──</span>
+  <span class="comment">↳ These sit between input layer and hidden layer H2</span>
+
+  w21:  0.200  −  (0.1 × <span class="hi-red">-0.0506</span>) =  0.200  +  0.0051  =  <span class="hi-green">0.2051</span>  ↑
+  w22:  0.400  −  (0.1 × <span class="hi-red">-0.0809</span>) =  0.400  +  0.0081  =  <span class="hi-green">0.4081</span>  ↑
+  b_H2: 0.200  −  (0.1 × <span class="hi-red">-0.1011</span>) =  0.200  +  0.0101  =  <span class="hi-green">0.2101</span>  ↑
+
+  <span class="comment">↳ All 9 parameters increased — because the model was predicting too low (0.663 < 1.0)</span>
+  <span class="comment">↳ The updates are tiny (in thousandths) — that is intentional. Gradual small steps = stable learning.</span></div>
+
+  <hr class="divider">
+
+  <!-- VERIFY -->
+  <div class="phase-header">
+    <span class="phase-badge badge-teal">VERIFY</span>
+    <span class="phase-title teal">Run Forward Pass Again With New Weights — Did Loss Improve?</span>
+  </div>
+
+  <div class="bubble">
+    After every weight update, we can verify that the loss actually decreased by running one more forward pass
+    with the new weights. This is not done in practice after every sample (too slow), but it proves the math works.
+  </div>
+
+  <div class="formula"><span class="hi-green">Forward pass with NEW weights:</span>
+
+  z_H1 = (0.3101×0.5) + (0.5162×0.8) + 0.1202  =  0.1551 + 0.4130 + 0.1202  =  0.6883
+  H1   = ReLU(0.6883) = 0.6883
+
+  z_H2 = (0.2051×0.5) + (0.4081×0.8) + 0.2101  =  0.1026 + 0.3265 + 0.2101  =  0.6392
+  H2   = ReLU(0.6392) = 0.6392
+
+  z_O  = (0.6219×0.6883) + (0.3209×0.6392) + 0.1337  =  0.4282 + 0.2051 + 0.1337  =  0.7670
+  ŷ    = Sigmoid(0.7670) = <span class="hi-green">0.683</span>
+
+  <span class="comment">↳ New loss = -log(0.683) = 0.381</span>
+
+  ┌─────────────────────────────────────────────────────────┐
+  │  Before update:  ŷ = 0.663  →  Loss = 0.411            │
+  │  After  update:  ŷ = <span class="hi-green">0.683</span>  →  Loss = <span class="hi-green">0.381</span>  ↓ improved ✅  │
+  └─────────────────────────────────────────────────────────┘
+
+  <span class="comment">↳ Loss dropped by 0.030 after just ONE update on ONE sample</span>
+  <span class="comment">↳ Repeat this across 700 records × 300 epochs = hundreds of thousands of updates</span>
+  <span class="comment">↳ Each update is tiny, but compounded over thousands of iterations → loss converges near 0</span></div>
+
+  <div class="info-box box-green" style="font-size:12px;">
+    <b>How close to perfect after many epochs?</b><br>
+    After ~300 epochs on 700 records: &nbsp;
+    ŷ ≈ 0.92 for diabetic patients &nbsp;|&nbsp; ŷ ≈ 0.08 for healthy patients &nbsp;|&nbsp; Accuracy ≈ 85–92% (typical for this type of problem)
+  </div>
+
+  <div class="page-footer">
+    <span>Neural Network Complete Lifecycle</span>
+    <span>Page 4 of 6 — Phase 4: Weight Update &amp; Verification</span>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════ PAGE 5 ══ -->
+<div class="page">
+
+  <div class="doc-header">
+    <h1>Phase 5 — Training Loop &amp; Stopping Conditions</h1>
+    <p>How 700 records are processed in batches across many epochs, and exactly when and why training stops.</p>
+  </div>
+
+  <!-- 700 RECORDS -->
+  <div class="phase-header">
+    <span class="phase-badge badge-blue">YOUR DATA</span>
+    <span class="phase-title blue">How Your 700 Records Are Processed</span>
+  </div>
+
+  <div class="bubble">
+    <b>Common confusion:</b> Is loss calculated for each of the 700 records separately?
+    Answer: <b>No — for mini-batch gradient descent (the standard method), records are grouped into batches of 32.
+    Loss is the AVERAGE across all 32 records in the batch. One backprop runs per batch, not per record.</b>
+  </div>
+
+  <div class="formula"><span class="hi-orange">Mini-Batch processing for 700 records, batch size = 32:</span>
+  <span class="comment">↳ 700 ÷ 32 = 21.875 → rounded to 22 batches per epoch (last batch may have fewer records)</span>
+
+  <span class="hi-blue">Epoch 1:</span>
+    Shuffle 700 records randomly
+    <span class="comment">↳ Shuffling prevents the network from memorising the order of records</span>
+
+    Batch 1  (records   1–32):  32 forward passes → average loss → 1 backprop → update all 9 weights
+    Batch 2  (records  33–64):  32 forward passes → average loss → 1 backprop → update all 9 weights
+    Batch 3  (records  65–96):  ...
+    ...
+    Batch 22 (records 673–700): remaining records → average loss → 1 backprop → update all 9 weights
+    <span class="comment">↳ End of Epoch 1: weights updated 22 times. Model has seen all 700 records once.</span>
+
+  <span class="hi-blue">Epoch 2:</span>
+    Shuffle again → repeat same 22 batches with slightly better weights
+    <span class="comment">↳ Same records, different order. The model sees the same data many times but from different angles.</span>
+
+  <span class="hi-blue">Epoch 300:</span>
+    Weights have been updated:  22 batches × 300 epochs = <span class="hi-green">6,600 total weight updates</span>
+    Loss has converged from ~0.69 (random) down to ~0.08 (trained)  ✅</div>
+
+  <hr class="divider">
+
+  <!-- STOPPING CONDITIONS -->
+  <div class="phase-header">
+    <span class="phase-badge badge-green">STOPPING</span>
+    <span class="phase-title green">3 Conditions That Stop Training</span>
+  </div>
+
+  <div class="two-col">
+    <div>
+      <div class="info-box box-blue" style="margin-bottom:8px;">
+        <b>① Epoch Limit (epoch=300)</b><br>
+        Simplest stop. After 300 epochs, training ends.<br>
+        <i>Risk: may stop too early (underfitting) or too late (overfitting). Use with early stopping for safety.</i>
+      </div>
+      <div class="info-box box-green" style="margin-bottom:8px;">
+        <b>② Early Stopping ← Best Practice</b><br>
+        Monitor <b>validation loss</b> after each epoch.<br>
+        If val_loss doesn't improve for <b>patience=20</b> consecutive epochs → stop.<br>
+        Automatically restore best weights from before the drift.<br>
+        <i>Best for small datasets like 700 records.</i>
+      </div>
+      <div class="info-box box-orange">
+        <b>③ Loss Threshold</b><br>
+        Stop when loss drops below a defined threshold (e.g., loss &lt; 0.05).<br>
+        <i>Rarely used alone — early stopping is more robust.</i>
+      </div>
+    </div>
+    <div>
+      <div class="formula" style="font-size:10.8px; margin:0;">Epoch  Train Loss  Val Loss  Action
+─────────────────────────────────
+  1      0.690      0.695    continue
+ 10      0.450      0.460    continue
+ 50      0.220      0.228    continue
+100      0.130      0.138    continue
+150      0.092      0.102    continue
+180      0.079      0.094    <span class="hi-green">← best val_loss saved</span>
+200      0.076      0.099    patience=1
+210      0.074      0.106    patience=2
+220      0.073      0.112    patience=3
+...
+200      0.068      0.140    patience=20
+<span class="hi-red">EARLY STOP FIRES ← restore epoch 180 weights</span>
+
+<span class="comment">↳ Train loss keeps falling (overfitting to training data)</span>
+<span class="comment">↳ Val loss starts rising (model failing on new data)</span>
+<span class="comment">↳ The GAP between train and val loss = overfitting</span>
+<span class="comment">↳ Best weights = epoch 180, before overfitting started</span></div>
+    </div>
+  </div>
+
+  <div class="bubble" style="margin-top:8px;">
+    <b>What is validation loss?</b> Before training, split data into training (80%) and validation (20%).
+    For 700 records: 560 used for training, 140 held out for validation.
+    After each epoch, run forward pass on the 140 validation records (no weight updates), compute their loss.
+    If that loss rises while training loss falls → model is memorising, not learning → time to stop.
+  </div>
+
+  <hr class="divider">
+
+  <!-- OVERFITTING DIAGRAM -->
+  <div class="phase-header">
+    <span class="phase-badge badge-orange">OVERFITTING</span>
+    <span class="phase-title orange">Training Loss vs Validation Loss — Recognising When to Stop</span>
+  </div>
+
+  <div class="two-col">
+    <div class="info-box box-red">
+      <b>Overfitting (too many epochs):</b><br>
+      Train loss: keeps falling →<br>
+      Val loss: starts rising →<br>
+      GAP between them grows →<br>
+      Model memorised training data, fails on new data.<br>
+      <b>Stop here. Use early stopping.</b>
+    </div>
+    <div class="info-box box-green">
+      <b>Good fit (correct epochs):</b><br>
+      Both train loss and val loss falling together →<br>
+      Gap stays small →<br>
+      Model has genuinely learned the pattern →<br>
+      Predicts well on new, unseen data too.<br>
+      <b>This is the goal.</b>
+    </div>
+  </div>
+
+  <div class="info-box box-grey" style="font-size:12px; margin-top:8px;">
+    <b>Recommended settings for 700 records:</b> &nbsp;
+    <code>epochs=300, batch_size=32, validation_split=0.2, patience=20, restore_best_weights=True</code><br>
+    Expected actual stopping: around epoch 150–200 (early stopping fires before hitting epoch limit).
+  </div>
+
+  <div class="page-footer">
+    <span>Neural Network Complete Lifecycle</span>
+    <span>Page 5 of 6 — Phase 5: Training Loop &amp; Stopping</span>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════ PAGE 6 ══ -->
+<div class="page">
+
+  <div class="doc-header">
+    <h1>Complete Lifecycle Summary + Quick Reference Card</h1>
+    <p>Every formula, rule, and concept on one page. Print this page as a standalone desk reference.</p>
+  </div>
+
+  <!-- COMPLETE LIFECYCLE FLOW -->
+  <div class="phase-header">
+    <span class="phase-badge badge-blue">LIFECYCLE</span>
+    <span class="phase-title blue">The Complete Training Loop — All 6 Phases</span>
+  </div>
+
+  <div class="lifecycle-flow">
+    <div class="lf-box blue">📥 Load<br>700 records</div>
+    <div class="lf-arrow">→</div>
+    <div class="lf-box dark">🔀 Shuffle<br>&amp; Batch(32)</div>
+    <div class="lf-arrow">→</div>
+    <div class="lf-box blue">➡️ Forward<br>Pass</div>
+    <div class="lf-arrow">→</div>
+    <div class="lf-box orange">📊 Compute<br>Loss</div>
+    <div class="lf-arrow">→</div>
+    <div class="lf-box red">⬅️ Backward<br>Pass</div>
+    <div class="lf-arrow">→</div>
+    <div class="lf-box green">🔧 Update<br>Weights</div>
+    <div class="lf-arrow">→</div>
+    <div class="lf-box purple">🔁 Next<br>Batch/Epoch</div>
+    <div class="lf-arrow">→</div>
+    <div class="lf-box green">✅ Early<br>Stop</div>
+  </div>
+  <div style="text-align:center; font-size:11px; color:#555; margin: 4px 0 10px 0;">
+    ↑ Each batch = 32 records → 1 weight update &nbsp;|&nbsp; 22 batches = 1 epoch &nbsp;|&nbsp; ~150-300 epochs total &nbsp;|&nbsp; Early stopping watches val_loss ↑
+  </div>
+
+  <hr class="divider">
+
+  <!-- FORMULAS TWO-COL -->
+  <div class="two-col">
+    <div>
+      <!-- FORWARD FORMULAS -->
+      <div class="phase-header" style="margin-top:0;">
+        <span class="phase-badge badge-blue">FORWARD</span>
+        <span class="phase-title blue">Forward Pass Formulas</span>
+      </div>
+      <div class="formula" style="font-size:10.8px; margin:0 0 7px 0;">z = Σ(weight × input) + bias
+<span class="comment">↳ sum of all weighted inputs + bias</span>
+
+ReLU:    max(0, z)
+<span class="comment">↳ hidden layers — gradient = 1 if z>0</span>
+
+Sigmoid: 1 / (1 + e⁻ᶻ)
+<span class="comment">↳ binary output only — range (0,1)</span>
+
+Softmax: eᶻⁱ / Σeᶻʲ
+<span class="comment">↳ multi-class output — sums to 1.0</span></div>
+
+      <!-- LOSS FORMULAS -->
+      <div class="phase-header">
+        <span class="phase-badge badge-orange">LOSS</span>
+        <span class="phase-title orange">Loss Functions</span>
+      </div>
+      <div class="formula" style="font-size:10.8px; margin:0 0 7px 0;">Binary CE:  -[y·log(ŷ)+(1-y)·log(1-ŷ)]
+<span class="comment">↳ binary classification (0 or 1)</span>
+
+MSE:  (1/n) × Σ(y - ŷ)²
+<span class="comment">↳ regression (predicting numbers)</span>
+
+MAE:  (1/n) × Σ|y - ŷ|
+<span class="comment">↳ regression, robust to outliers</span>
+
+Categorical CE:  -Σ yᵢ × log(ŷᵢ)
+<span class="comment">↳ multi-class classification</span></div>
+
+      <!-- UPDATE FORMULA -->
+      <div class="phase-header">
+        <span class="phase-badge badge-green">UPDATE</span>
+        <span class="phase-title green">Weight Update Rule</span>
+      </div>
+      <div class="formula" style="font-size:10.8px; margin:0;">W_new = W_old − η × gradient
+<span class="comment">↳ η = learning rate (your choice)</span>
+<span class="comment">↳ negative gradient → weight increases</span>
+<span class="comment">↳ positive gradient → weight decreases</span>
+<span class="comment">↳ Adam default η = 0.001</span></div>
+    </div>
+
+    <div>
+      <!-- BACKPROP FORMULAS -->
+      <div class="phase-header" style="margin-top:0;">
+        <span class="phase-badge badge-red">BACKPROP</span>
+        <span class="phase-title red">Backward Pass Formulas</span>
+      </div>
+      <div class="formula" style="font-size:10.8px; margin:0 0 7px 0;">Output blame (CE + Sigmoid):
+  δ_O = ŷ - y
+<span class="comment">↳ negative = prediction too low</span>
+
+Hidden blame (chain rule):
+  blame_H = δ_O × connecting_weight
+<span class="comment">↳ bigger weight = more blame</span>
+
+Through ReLU gate:
+  δ_H = blame_H × (1 if z>0 else 0)
+<span class="comment">↳ checks saved z from forward pass</span>
+
+Weight gradient:
+  ∂L/∂w = δ × input_to_that_weight
+<span class="comment">↳ bigger input = bigger gradient</span>
+
+Bias gradient:
+  ∂L/∂b = δ × 1 = δ
+<span class="comment">↳ bias always multiplied by 1</span></div>
+
+      <!-- RELU vs SIGMOID -->
+      <div class="phase-header">
+        <span class="phase-badge badge-orange">WHY RELU</span>
+        <span class="phase-title orange">ReLU vs Sigmoid Gradient</span>
+      </div>
+      <div class="formula" style="font-size:10.8px; margin:0 0 7px 0;">Sigmoid gradient: max = 0.25
+4 layers: 1 × 0.25⁴ = 0.004 → vanishes!
+<span class="comment">↳ early layers get almost zero gradient</span>
+
+ReLU gradient: = 1 (when z > 0)
+4 layers: 1 × 1⁴ = 1.0 → full signal
+<span class="comment">↳ all layers get proper gradient</span></div>
+
+      <!-- PARAMETER COUNT -->
+      <div class="phase-header">
+        <span class="phase-badge badge-purple">PARAMS</span>
+        <span class="phase-title purple">Counting Parameters</span>
+      </div>
+      <div class="formula" style="font-size:10.8px; margin:0;">Weights = left neurons × right neurons
+<span class="comment">↳ every connection has 1 weight</span>
+
+Input(2)→Hidden(2): 2×2 = 4 weights
+Hidden(2)→Output(1): 2×1 = 2 weights
+Biases: 1 per neuron = 3 biases
+Total = 9 parameters</div>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <!-- MASTER GLOSSARY -->
+  <div class="phase-header">
+    <span class="phase-badge badge-grey">GLOSSARY</span>
+    <span class="phase-title" style="color:#333;border-color:#333;">Every Term — Plain English, One Line Each</span>
+  </div>
+
+  <table>
+    <tr><th>Term</th><th>Plain English Meaning</th></tr>
+    <tr><td><span class="tag blue">Neuron</span></td><td>One computing unit inside the network. Does: weighted sum → activation function → output.</td></tr>
+    <tr><td><span class="tag blue">Weight</span></td><td>One number per connection (arrow). Controls how strongly one neuron influences the next. Learned by backprop.</td></tr>
+    <tr><td><span class="tag blue">Bias</span></td><td>One number per neuron. Allows neuron to fire even when all inputs are zero. Like the y-intercept in y = mx + c.</td></tr>
+    <tr><td><span class="tag blue">ReLU</span></td><td>Activation: max(0, z). Passes positive values unchanged. Blocks negatives. Gradient = 1 → no vanishing gradient.</td></tr>
+    <tr><td><span class="tag blue">Sigmoid</span></td><td>Activation: squashes any number to (0,1). Used at output for binary classification. Gradient max 0.25 → vanishes in deep nets.</td></tr>
+    <tr><td><span class="tag blue">Forward Pass</span></td><td>Data flows left→right through all layers. Each layer: z = Σ(wx)+b, then activation. Produces prediction ŷ.</td></tr>
+    <tr><td><span class="tag orange">Loss</span></td><td>Single number: how wrong the prediction is. Loss = 0 → perfect. Loss = 2.3 → terrible. Goal: minimise this.</td></tr>
+    <tr><td><span class="tag red">Gradient</span></td><td>"If I increase this weight by a tiny amount, does loss go up or down, and by how much?" — the answer is the gradient.</td></tr>
+    <tr><td><span class="tag red">Backpropagation</span></td><td>Traces loss backwards right→left. Uses chain rule to assign a gradient (blame) to every weight and bias.</td></tr>
+    <tr><td><span class="tag red">Chain Rule</span></td><td>Each layer multiplies the incoming blame by its own local gradient and passes it further left.</td></tr>
+    <tr><td><span class="tag red">Dead Neuron</span></td><td>z ≤ 0 during forward pass → ReLU output = 0 → backprop gradient = 0 → weights never update → neuron stuck forever.</td></tr>
+    <tr><td><span class="tag red">Vanishing Gradient</span></td><td>Sigmoid multiplies gradient by ≤0.25 per layer. Deep networks multiply many times → gradient ≈ 0 → early layers don't learn.</td></tr>
+    <tr><td><span class="tag green">Weight Update</span></td><td>W_new = W_old − η × gradient. Nudges every weight in the direction that reduces loss. Runs after every batch.</td></tr>
+    <tr><td><span class="tag green">Learning Rate η</span></td><td>Step size for weight update. Set by YOU before training. Not learned. Too large = overshoot. Too small = too slow.</td></tr>
+    <tr><td><span class="tag blue">Epoch</span></td><td>One full pass through all training records. 700 records ÷ batch 32 = 22 weight updates per epoch.</td></tr>
+    <tr><td><span class="tag blue">Batch</span></td><td>Group of records processed together. Loss = average across batch. One backprop per batch.</td></tr>
+    <tr><td><span class="tag green">Early Stopping</span></td><td>Watches validation loss. If it doesn't improve for patience=20 epochs → stop and restore best weights.</td></tr>
+    <tr><td><span class="tag orange">Overfitting</span></td><td>Train loss falls but val loss rises. Model memorised training data. Fix: early stopping, dropout, more data.</td></tr>
+  </table>
+
+  <div class="page-footer">
+    <span>Neural Network Complete Lifecycle</span>
+    <span>Page 6 of 6 — Summary, Formulas &amp; Glossary</span>
+  </div>
+</div>
+
+</body>
+</html>
