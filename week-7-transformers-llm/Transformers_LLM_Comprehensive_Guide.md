@@ -36,6 +36,8 @@
 20. [Chapter 20: Interview Questions — Beginner to Advanced](#chapter-20-interviews)
 21. [Appendix A: Glossary](#appendix-a-glossary)
 22. [Appendix B: Recommended Resources](#appendix-b-resources)
+23. [Appendix C: Complete Weight Inventory — Every Single Pretrained Weight](#appendix-c-weight-inventory)
+24. [Appendix D: Common Confusions — Cleared Up](#appendix-d-common-confusions)
 
 ---
 
@@ -3021,3 +3023,386 @@ The Java mindset (systems thinking, production quality, type safety) is your big
 advantage over data scientists who've never built production software.*
 
 *Good luck on your journey from Java to AI engineering.*
+
+---
+
+## Appendix C: Complete Weight Inventory — Every Single Pretrained Weight
+
+This section lists **every single learned weight** in the Transformer. If it's not here,
+it doesn't exist in the model. In Java terms: think of the model as a class — these are
+all the final field values that get serialized to disk after training.
+
+### Shared Weights (Used Across the Whole Model)
+
+```
+1. W_e_encoder      → Embedding table for INPUT language (English)
+                       Purpose: convert English word ID → dense vector
+                       Shape: (vocab_size × d_model)  e.g. (50,000 × 768)
+                       One row per word in vocabulary — a lookup table
+
+2. W_e_decoder      → Embedding table for OUTPUT language (French)
+                       Purpose: convert French word ID → dense vector
+                       Shape: (50,000 × 768)
+                       COMPLETELY DIFFERENT table from encoder's!
+                       (In decoder-only models like GPT/Claude: only ONE W_e)
+
+3. W_linear         → Final prediction layer
+                       Purpose: convert last decoder vector → score for every vocab word
+                       Shape: (768 × 50,000)
+                       Often SHARES weights with W_e_decoder — called "weight tying"
+                       (embedding and prediction are inverse operations, saves memory)
+
+4. PE               → Positional Encoding
+                       Original Transformer: NOT learned — fixed sin/cos formula
+                       BERT/GPT: IS a learned weight matrix
+                       Purpose: tell the model the position of each token in the sentence
+```
+
+### Per Encoder Block (N blocks × all of the following, each block has DIFFERENT values)
+
+```
+SELF-ATTENTION (12 heads × 3 matrices each):
+
+5.  W_Q1 ... W_Q12   → 12 Query weight matrices (one per head)
+                        Purpose: "What am I looking for?" — extract search query from word
+                        Shape: (d_model × d_k) = (768 × 64) per head
+                        Each head learns a DIFFERENT way to form questions
+
+6.  W_K1 ... W_K12   → 12 Key weight matrices (one per head)
+                        Purpose: "What do I advertise?" — extract searchable tag from word
+                        Shape: (768 × 64) per head
+                        Each head learns a DIFFERENT way to describe itself
+
+7.  W_V1 ... W_V12   → 12 Value weight matrices (one per head)
+                        Purpose: "What content do I give?" — extract information payload
+                        Shape: (768 × 64) per head
+                        Each head learns a DIFFERENT way to package information
+
+8.  W_O              → Output projection matrix (ONE per block, shared across all 12 heads)
+                        Purpose: blend all 12 head outputs into one unified representation
+                        Shape: (d_model × d_model) = (768 × 768)
+                        NOT the sum of Q, K, V — its own independent learned matrix
+                        Like a mixer board combining 12 microphone channels into one track
+
+    Java analogy: W_Q, W_K, W_V are like three different HashMap implementations —
+    same input (word vector), completely different internal logic, different output.
+    W_O is like a Collector that merges 12 streams into one.
+
+LAYER NORM 1 (after attention):
+
+9.  γ₁ (gamma)       → Scale parameter — a learned VECTOR, not a matrix
+                        Shape: (d_model,) = (768,)
+                        Purpose: control how spread-out values are after normalization
+
+10. β₁ (beta)        → Shift parameter — a learned VECTOR
+                        Shape: (768,)
+                        Purpose: control where the center is after normalization
+
+    Why γ and β? Without them, LayerNorm always forces mean=0, std=1.
+    With them, the model learns the OPTIMAL distribution for each layer.
+
+FEED FORWARD NETWORK:
+
+11. W_FF1             → First linear layer weights
+                        Shape: (768 × 3072)  — expands by 4×
+                        Purpose: project to higher-dimensional "thinking space"
+
+12. b_FF1             → First linear layer BIAS
+                        Shape: (3072,)
+                        Purpose: offset added after W_FF1 multiplication
+                        Formula: output = input × W_FF1 + b_FF1
+                        Bias allows output even when all inputs are zero
+
+13. W_FF2             → Second linear layer weights
+                        Shape: (3072 × 768)  — shrinks back to d_model
+                        Purpose: compress the high-dimensional representation back
+
+14. b_FF2             → Second linear layer BIAS
+                        Shape: (768,)
+
+LAYER NORM 2 (after FFN):
+
+15. γ₂ (gamma)       → Scale parameter
+16. β₂ (beta)        → Shift parameter
+```
+
+### Per Decoder Block (N blocks × all of the following)
+
+```
+MASKED SELF-ATTENTION (12 heads):
+
+17. W_Q1 ... W_Q12    → 12 Query matrices — DIFFERENT from encoder's W_Q!
+18. W_K1 ... W_K12    → 12 Key matrices   — DIFFERENT from encoder's W_K!
+19. W_V1 ... W_V12    → 12 Value matrices — DIFFERENT from encoder's W_V!
+20. W_O               → Output projection — DIFFERENT from encoder's W_O!
+
+LAYER NORM 1:
+
+21. γ₁, β₁            → Scale and shift parameters
+
+CROSS-ATTENTION (12 heads) — THE BRIDGE BETWEEN ENCODER AND DECODER:
+
+22. W_Q_cross1 ... W_Q_cross12   → 12 Query matrices for cross-attention
+                                     Q comes from DECODER output
+                                     DIFFERENT from masked self-attention's W_Q
+
+23. W_K_cross1 ... W_K_cross12   → 12 Key matrices for cross-attention
+                                     K comes from ENCODER output
+                                     DIFFERENT from everything else
+
+24. W_V_cross1 ... W_V_cross12   → 12 Value matrices for cross-attention
+                                     V comes from ENCODER output
+
+25. W_O_cross                     → Output projection for cross-attention
+                                     Its own separate learned matrix
+
+LAYER NORM 2:
+
+26. γ₂, β₂            → Scale and shift
+
+FEED FORWARD NETWORK:
+
+27. W_FF1, b_FF1       → Expand layer (768 → 3072) + bias
+28. W_FF2, b_FF2       → Shrink layer (3072 → 768) + bias
+
+LAYER NORM 3:
+
+29. γ₃, β₃            → Scale and shift
+```
+
+### Weights You Might Not Expect
+
+#### Biases (b_FF1, b_FF2)
+
+Every linear layer has a bias in addition to its weight matrix:
+
+```java
+// Java analogy: like a field with a default non-zero value
+class LinearLayer {
+    float[][] W;  // weight matrix — initialized random, trained
+    float[]   b;  // bias vector   — ALSO initialized random, trained!
+
+    float[] forward(float[] input) {
+        return matmul(input, W) + b;   // both W and b contribute to output
+    }
+}
+```
+
+The bias allows the layer to produce non-zero output even when all inputs are zero.
+This gives the model extra expressivity.
+
+#### Layer Norm Parameters (γ and β)
+
+Often forgotten — but they ARE learned:
+
+```
+Standard normalization:   (x - mean) / std       → always forces mean=0, std=1
+
+With learned parameters:  ((x - mean) / std) × γ + β  → model controls distribution
+
+γ (gamma) = learned SCALE  → how spread-out after normalization
+β (beta)  = learned SHIFT  → where the center is after normalization
+
+These are small vectors (768 numbers each), not big matrices.
+Learned during training, fixed during inference — just like W_Q, W_K, W_V.
+```
+
+#### W_linear and Weight Tying
+
+```
+After all decoder blocks, the last token has a d_model-dim vector.
+W_linear projects it to vocabulary size:
+
+    last_vector (768) × W_linear (768 × 50,000) = logits (50,000 scores)
+        ↓ softmax
+    = probabilities → pick highest → predicted next word
+
+Weight tying: W_linear = W_e_decoder transposed
+  - Input embedding: token_id → vector (lookup row in W_e)
+  - Output prediction: vector → token_id (find best-matching row in W_e)
+  - These are inverse operations — the same table can serve both!
+  - Saves 50,000 × 768 = 38.4M parameters for free
+```
+
+### Complete Weight Count for Original Transformer (N=6 blocks each side)
+
+```
+SHARED WEIGHTS:
+  W_e_encoder, W_e_decoder, W_linear        3 matrices
+  ─────────────────────────────────────────
+  Subtotal:                                  3 matrices
+
+PER ENCODER BLOCK:
+  Attention: 12×W_Q + 12×W_K + 12×W_V + W_O  = 37 matrices
+  LayerNorm1: γ₁ + β₁                          = 2 vectors
+  FFN: W_FF1 + b_FF1 + W_FF2 + b_FF2           = 2 matrices + 2 vectors
+  LayerNorm2: γ₂ + β₂                          = 2 vectors
+  Per block: 39 matrices + 6 vectors
+  × 6 blocks: 234 matrices + 36 vectors
+
+PER DECODER BLOCK:
+  Masked Attn:  37 matrices
+  LayerNorm1:    2 vectors
+  Cross Attn:   37 matrices
+  LayerNorm2:    2 vectors
+  FFN:           2 matrices + 2 vectors
+  LayerNorm3:    2 vectors
+  Per block: 76 matrices + 6 vectors
+  × 6 blocks: 456 matrices + 36 vectors
+
+GRAND TOTAL:
+  3 + 234 + 456  = 693 weight matrices
+  0 + 36  + 36   =  72 small vectors (γ, β, biases)
+  ────────────────────────────────────────────────
+  Total: 765 learned weight objects
+
+  EVERY SINGLE ONE:
+    ✓ Started as RANDOM numbers
+    ✓ Learned via BACKPROPAGATION on billions of examples
+    ✓ FIXED and FROZEN during inference
+    ✓ SEPARATE and INDEPENDENT from all others (different numbers, different skills)
+```
+
+### Master Reference Table
+
+| Weight | Purpose | Learned? | Shape (example) |
+|--------|---------|----------|----------------|
+| W_e_encoder | Input word ID → vector (embedding lookup) | ✓ Yes | 50,000 × 768 |
+| W_e_decoder | Output word ID → vector (embedding lookup) | ✓ Yes | 50,000 × 768 |
+| PE | Position info (sin/cos formula or learned) | Sometimes | seq_len × 768 |
+| W_Q (per head) | Extract "what am I looking for?" | ✓ Yes | 768 × 64 |
+| W_K (per head) | Extract "what do I advertise?" | ✓ Yes | 768 × 64 |
+| W_V (per head) | Extract "what content do I give?" | ✓ Yes | 768 × 64 |
+| W_O | Combine all multi-head outputs | ✓ Yes | 768 × 768 |
+| W_Q_cross (per head) | Decoder asks about encoder (cross-attn) | ✓ Yes | 768 × 64 |
+| W_K_cross (per head) | Encoder advertises to decoder (cross-attn) | ✓ Yes | 768 × 64 |
+| W_V_cross (per head) | Encoder gives content to decoder (cross-attn) | ✓ Yes | 768 × 64 |
+| W_O_cross | Combine cross-attention heads | ✓ Yes | 768 × 768 |
+| W_FF1 | FFN expand layer (4× expansion) | ✓ Yes | 768 × 3072 |
+| b_FF1 | FFN expand bias | ✓ Yes | 3072 |
+| W_FF2 | FFN shrink layer (back to d_model) | ✓ Yes | 3072 × 768 |
+| b_FF2 | FFN shrink bias | ✓ Yes | 768 |
+| γ (gamma) | LayerNorm scale — learned vector | ✓ Yes | 768 |
+| β (beta) | LayerNorm shift — learned vector | ✓ Yes | 768 |
+| W_linear | Final vector → vocabulary scores | ✓ Yes | 768 × 50,000 |
+
+**That's everything. There are no hidden weights.**
+**Every single learned parameter in the Transformer is listed above.**
+
+---
+
+## Appendix D: Common Confusions — Cleared Up
+
+These are the most frequent misconceptions when learning Transformers.
+
+---
+
+### Confusion 1: "W_e is a hand-crafted static dictionary"
+
+**Wrong.** W_e is NOT hand-crafted. It starts as random numbers and learns meaningful
+vectors through backpropagation over billions of training examples.
+
+During inference it behaves like a static lookup (same word → same vector every time),
+which is why it feels pre-built. But those values were *discovered* by training, not
+designed by humans.
+
+After training, semantic structure *emerges*: "king" and "queen" end up close together
+because they appeared in similar contexts during training. Nobody wrote that rule.
+
+---
+
+### Confusion 2: "W_Q, W_K, W_V, W_e are all the same matrix"
+
+**Wrong.** They are completely DIFFERENT matrices with completely different numbers inside.
+
+They share the same *lifecycle* (random → trained → frozen) but they learned different skills:
+
+```
+W_e  learned: "what does each word mean?"
+W_Q  learned: "how to form questions / what to search for"
+W_K  learned: "how to advertise / what to be found by"
+W_V  learned: "how to package information for sharing"
+W_O  learned: "how to blend 12 head outputs into one"
+```
+
+Java analogy: Like four totally different HashMap implementations — same interface
+(`float[] forward(float[] input)`), radically different internal logic.
+
+---
+
+### Confusion 3: "W_O is derived from Q, K, or V"
+
+**Wrong.** W_O is its own independent learned matrix. It has nothing to do with Q, K, or V values.
+
+W_O's job is to combine the *concatenated outputs* from all 12 attention heads into one
+blended representation. Think of it as a master audio mixer: 12 input channels (heads),
+one output track.
+
+```
+WITHOUT W_O: head outputs sit SIDE BY SIDE — no interaction between them
+WITH W_O:    head outputs are BLENDED — perspectives from all heads interact
+```
+
+---
+
+### Confusion 4: "Each attention head has its own Feed-Forward Network"
+
+**Wrong.** Each head has its own W_Q, W_K, W_V (attention weights), but all 12 heads
+share ONE Feed-Forward Network.
+
+```
+Correct flow:
+  12 heads run in parallel
+      → concatenate all outputs
+      → multiply by W_O
+      → Add & Layer Norm
+      → ONE shared FFN (runs once for all heads combined)
+      → Add & Layer Norm
+      → block output
+```
+
+The FFN does NOT run separately per head. All 12 heads combine first via W_O, then ONE FFN
+processes the combined result.
+
+---
+
+### Confusion 5: "The mask doesn't appear when there's only one word"
+
+**Correct — and this is NOT a bug.** When there's only one word (`<START>` token),
+the attention matrix is 1×1. There are no future positions to mask.
+The -∞ mask only becomes relevant with 2 or more words.
+
+---
+
+### Confusion 6: "The decoder uses the same embedding table as the encoder"
+
+**Wrong (for encoder-decoder models).** The encoder has `W_e_encoder` (English words)
+and the decoder has `W_e_decoder` (French words) — completely separate tables with
+separate vocabularies.
+
+**Correct (for decoder-only models like GPT, Claude).** There IS only one embedding
+table because input and output share the same language. The same lookup table handles
+both reading the prompt and generating the response.
+
+---
+
+### Confusion 7: "The encoder runs again at every decoder time step"
+
+**Wrong.** The encoder runs ONCE and its output is SAVED.
+
+The decoder reuses the exact same encoder output at every time step. Only the decoder
+runs multiple times (once per output word). This is why the encoder can be called a
+"read once, cache forever" component for a given input.
+
+---
+
+### Confusion 8: "Cross-attention Q, K, V all come from the same place"
+
+**Wrong.** In cross-attention:
+- **Q** comes from the **DECODER** (what the decoder is currently looking for)
+- **K** comes from the **ENCODER output** (what the input words can be found by)
+- **V** comes from the **ENCODER output** (the content of each input word)
+
+This is what makes it "cross" — it crosses the boundary between encoder and decoder.
+And it uses its own separate weight matrices (W_Q_cross, W_K_cross, W_V_cross) that are
+completely different from both encoder and decoder self-attention weights.
