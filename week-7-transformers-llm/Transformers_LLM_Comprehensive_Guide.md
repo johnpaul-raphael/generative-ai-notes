@@ -63,6 +63,28 @@ Mistral, Falcon, and hundreds more.
 | GPU utilization | ~20-30% (sequential bottleneck) | ~80-90% (fully parallel) |
 | Scaling | Diminishing returns | Reliable gains with more data + compute |
 
+**The "it" problem — why RNN long-range memory fails:**
+
+```
+"The animal didn't cross the street because it was too tired"
+
+RNN processes left-to-right:
+  h1(The) → h2(animal) → h3(didn't) → h4(cross) → h5(the)
+  → h6(street) → h7(because) → h8(it) → h9(was) → h10(tired)
+
+By the time we reach "it" (h8), the signal from "animal" (h2)
+has been diluted through 6 recurrent steps — the model struggles
+to correctly resolve "it" → "animal" in long sentences.
+```
+
+Three specific RNN failure modes:
+
+| Failure | Cause | Impact |
+|---|---|---|
+| **Vanishing gradient** | Gradients shrink multiplicatively over each timestep | Early words lose influence on the loss |
+| **Sequential processing** | Each hidden state depends on the previous | Cannot parallelize — slow on GPUs |
+| **Context bottleneck** | Entire sentence compressed into one fixed-size vector | Information loss for long inputs |
+
 ### The 30-Second Mental Model
 
 Think of a Transformer as a processing pipeline (like a Java stream chain):
@@ -530,6 +552,17 @@ input_to_transformer = token_embedding + positional_encoding
 - Different frequencies: low-frequency dims = coarse position, high-frequency = fine
 - The model can compute relative position: `PE(pos + k)` is a linear function of `PE(pos)`
 
+**Worked numerical example** (d_model = 4, pos = 3):
+
+```
+PE(3, 0) = sin(3 / 10000^(0/4)) = sin(3)     =  0.141
+PE(3, 1) = cos(3 / 10000^(0/4)) = cos(3)     = -0.990
+PE(3, 2) = sin(3 / 10000^(2/4)) = sin(0.03)  =  0.030
+PE(3, 3) = cos(3 / 10000^(2/4)) = cos(0.03)  =  0.9996
+```
+
+So position 3 in a 4-dim model gets the vector `[0.141, -0.990, 0.030, 0.9996]` added to its token embedding. Each position produces a unique signature across all dimensions.
+
 ### Learned Positional Embeddings
 
 GPT-2, BERT: learned position vectors — another lookup table of shape `[max_seq_len, d_model]`.
@@ -653,6 +686,29 @@ Attention(Q, K, V) = softmax(Q @ K^T / √d_k) @ V
 ```
 
 This is the most important equation in modern AI. Memorize it.
+
+**Concrete attention weight example — resolving "it":**
+
+When the model processes "it" in the sentence *"The animal didn't cross the street because it was tired"*, the attention weights over all tokens look like:
+
+```
+Token       Attention weight   Meaning
+─────────────────────────────────────────────────────
+"The"            0.02          low — article, not relevant
+"animal"         0.85          HIGH — "it" refers to this!
+"didn't"         0.01
+"cross"          0.03
+"the"            0.01
+"street"         0.04          small — could have been the referent
+"because"        0.01
+"it"             0.01          (self)
+"was"            0.01
+"tired"          0.01
+─────────────────────────────────────────────────────
+Sum:             1.00          always sums to 1.0 (softmax)
+```
+
+The model learned during training that pronouns should attend heavily to the most semantically plausible noun — no one programmed this rule in.
 
 ### Worked Numerical Example
 
@@ -825,6 +881,26 @@ FFN(x) = activation(x @ W1 + b1) @ W2 + b2
 The FFN is interpreted as a **memory store**: attention decides *which information to retrieve*,
 the FFN decides *what to do with it*.
 
+**Bank disambiguation example — what FFN actually resolves:**
+
+```
+Sentence: "The bank can guarantee deposits will grow"
+
+After Attention:
+  "bank" has absorbed context from "deposits" and "guarantee"
+  → its vector is a blend of all relevant surrounding words
+
+After FFN:
+  Given this blended context, the FFN asks:
+  → is this a FINANCIAL bank or a RIVER bank?
+  → output vector now strongly encodes "financial institution"
+  → semantic ambiguity is RESOLVED here, not inside attention
+```
+
+The division of labour:
+- **Attention** = *"gather context"* — tokens talk to each other
+- **FFN** = *"think deeply about it"* — each token processes independently
+
 Dimensions:
 - Input/Output: `d_model` (e.g., 4096)
 - Hidden: `4 × d_model` (e.g., 16384) — most parameters live here
@@ -961,6 +1037,53 @@ Next-Token Probabilities (batch × seq_len × vocab_size)
 - Scales predictably — just add more layers
 - Autoregressive generation maps naturally to most use cases
 
+Three deeper reasons decoder-only won:
+
+**1. One model handles everything via prompting**
+```
+Decoder-only GPT-style model:
+  "Translate this"     → generates translation
+  "Summarize this"     → generates summary
+  "Write code for X"   → generates code
+  "Answer my question" → generates answer
+
+No task-specific architecture changes — just change the prompt.
+BERT needs a different fine-tuned head per task.
+```
+
+**2. Scales dramatically better**
+```
+Encoder (BERT):  double the parameters → marginal quality gain
+Decoder (GPT):   double the parameters → dramatically smarter
+
+Empirically proven: the bigger the decoder, the better it gets
+at nearly everything — including understanding tasks BERT was
+designed for.
+```
+
+**3. Training is simpler and cheaper**
+```
+BERT training: needs masked tokens + next-sentence prediction
+               → specially prepared data, complex objectives
+
+GPT training:  just predict the next word — that's it
+               → entire internet = training data, no special prep
+```
+
+**Historical timeline:**
+```
+2018  BERT  (Encoder-only)   → best NLP understanding model
+2019  GPT-2 (Decoder-only)   → shocks world with text generation quality
+2020  GPT-3 (Decoder-only)   → few-shot learning, does almost everything
+2022  ChatGPT (Decoder-only) → mainstream adoption
+2023+ GPT-4, Claude, Gemini  → all decoder-only, industry standard
+
+BERT didn't disappear — it still powers search and retrieval —
+but the spotlight moved entirely to decoder-only models.
+```
+
+> Encoder was not removed because it's bad. Decoder alone, at massive scale, turned out to be **good enough at understanding AND great at generating** — making a separate encoder redundant for most real-world LLM applications.
+
 ### Parameter Count Formula
 
 For one block with `d_model = d`, FFN hidden = `4d`, `h` heads:
@@ -990,6 +1113,16 @@ Per block: 12 × 4096² = 201 million
 32 blocks: 6.44 billion
 Embedding: 32,000 × 4096 = 131 million
 Total: ≈ 8 billion parameters ✓
+```
+
+**Example — GPT-3 175B (for scale comparison):**
+
+```
+d = 12,288, N = 96 blocks, vocab = 50,257
+Per block: 12 × 12,288² = 1.81 billion
+96 blocks: 173.9 billion
+Embedding: 50,257 × 12,288 = 617 million
+Total: ≈ 175 billion parameters ✓
 ```
 
 ### Interview Questions — Chapter 10
@@ -1180,6 +1313,18 @@ Top-p adapts dynamically: sometimes 5 tokens cover 90% probability (focused), so
 | Creative writing | 1.0–1.2 | 0.95 | 100 |
 | Factual retrieval | 0.0–0.3 | — | — |
 
+### Repetition Penalty
+
+Reduce the probability of tokens already generated:
+
+```python
+penalty = 1.3   # > 1.0 discourages repetition
+for token_id in already_generated:
+    logits[token_id] /= penalty
+```
+
+Prevents the model from looping. Common in chat systems; usually combined with top-p.
+
 ### Beam Search
 
 Maintain `b` candidate sequences at each step, expand all. Used in translation but
@@ -1311,6 +1456,260 @@ All modern training and inference frameworks (vLLM, Hugging Face, llama.cpp) use
 > Naive training collapses — popular experts get most tokens, others never train.
 > Solution: auxiliary load-balancing loss penalizes uneven expert utilization.
 > Mixtral's router uses a top-2 softmax over expert logits with auxiliary loss.
+
+---
+
+## Chapter 13B: BERT — Bidirectional Encoder Representations from Transformers
+
+> This chapter covers everything a student needs to understand BERT — from architecture internals to hands-on fine-tuning. It complements Chapter 13 (modern architectures) and Chapter 14 (fine-tuning).
+
+### What is BERT?
+
+BERT (Devlin et al., Google, 2018) is an **encoder-only** Transformer pre-trained on 3.3 billion words. Unlike GPT which predicts the next token left-to-right, BERT reads the **entire sequence bidirectionally** — every token sees every other token simultaneously. This makes it exceptional at *understanding* tasks.
+
+```
+Input:  [CLS] The patient was treated with insulin [SEP]
+         ↓
+  12 × Bidirectional Transformer Encoder Blocks
+  (every token attends to every other token — no causal mask)
+         ↓
+  Output: one 768-dim context vector per token
+         ↓
+  [CLS] vector → classification head → label
+```
+
+---
+
+### BERT Architecture Specifics
+
+| Component | bert-base | bert-large |
+|---|---|---|
+| Transformer layers | 12 | 24 |
+| Attention heads/layer | 12 | 16 |
+| Hidden dimension | 768 | 1024 |
+| FFN inner dimension | 3,072 | 4,096 |
+| Max sequence length | 512 | 512 |
+| Total parameters | ~110M | ~340M |
+| Pre-training data | BooksCorpus + Wikipedia (3.3B words) | same |
+
+**Three input embeddings are summed before the first encoder block:**
+
+```
+Final input = Token Embedding + Segment Embedding + Position Embedding
+
+Token Embedding  : maps each token ID → 768-dim vector (vocab size 30,522)
+Segment Embedding: 0 for sentence A, 1 for sentence B (pair tasks like NLI/QA)
+Position Embedding: learned vectors for positions 0–511 (not sinusoidal like original paper)
+```
+
+---
+
+### BERT's Two Pre-training Objectives
+
+BERT was pre-trained jointly on two tasks — you don't run these, Google did. Understanding them explains why BERT's representations are so powerful.
+
+**Task 1: Masked Language Modeling (MLM)**
+
+```
+Original : "The patient was treated with insulin for diabetes"
+Masked   : "The patient was [MASK] with insulin for diabetes"
+Target   : predict "treated"
+
+Rules:
+  - 15% of tokens are randomly selected each sequence
+  - Of those 15%:  80% replaced with [MASK]
+                   10% replaced with a random token
+                   10% left unchanged
+  - Model must predict the original token from CONTEXT ALONE
+
+Why it forces bidirectionality:
+  To predict "treated", the model must look BOTH at
+  "patient was" (left context) AND "with insulin" (right context).
+  A left-to-right model (GPT) only sees the left — it can't do this.
+```
+
+**Task 2: Next Sentence Prediction (NSP)**
+
+```
+Input:  [CLS] Chemotherapy targets cancer cells. [SEP] Side effects include nausea. [SEP]
+Label:  IsNext = True  (50% of pairs)
+
+Input:  [CLS] Chemotherapy targets cancer cells. [SEP] The stock market rose today. [SEP]
+Label:  IsNext = False (50% of pairs — randomly sampled negative)
+
+[CLS] final hidden state → Binary classifier (IsNext / NotNext)
+
+Purpose: teaches BERT to understand relationships BETWEEN sentences.
+Useful for: Question Answering (does passage answer question?),
+            Natural Language Inference (does premise entail hypothesis?)
+```
+
+> Note: Later work (RoBERTa, 2019) found NSP provides minimal benefit and removed it. But understanding NSP explains why the [CLS] token works so well for sentence-level classification.
+
+---
+
+### Why BERT is Bidirectional — The Key Difference from GPT
+
+```
+GPT attention (causal mask applied):
+  Sentence: "The bank was flooded after the rain"
+  When processing "bank":
+    Can attend to: "The", "bank"
+    Cannot attend to: "was", "flooded", "after", "the", "rain"  ← future is masked
+  → Must guess meaning from incomplete context
+
+BERT attention (no mask — bidirectional):
+  When processing "bank":
+    Can attend to ALL: "The", "bank", "was", "flooded", "after", "the", "rain"
+    Sees "flooded" + "rain" → concludes "bank" = riverbank, not financial
+  → Full context available, rich disambiguation possible
+```
+
+| | BERT | GPT |
+|---|---|---|
+| Attention direction | Bidirectional (all tokens) | Causal (past only) |
+| Pre-training task | Masked token prediction (MLM) | Next token prediction |
+| Best at | Understanding, classification, extraction | Generation, completion, chat |
+| [CLS] token use | Sentence representation for classification | Not used for classification |
+
+---
+
+### BERT Tokenizer — WordPiece
+
+BERT uses **WordPiece** tokenization (different from GPT's BPE):
+
+```python
+from transformers import BertTokenizer
+tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
+
+# "uncased" means ALL text is lowercased before tokenizing
+# "Doctor" and "doctor" → same tokens
+
+text = "The cardiomyopathy was diagnosed after an echocardiogram"
+tokens = tokenizer.tokenize(text)
+# → ['the', 'card', '##io', '##my', '##op', '##athy', 'was', 'diagnosed',
+#    'after', 'an', 'echo', '##car', '##dio', '##gram']
+# ## prefix = continuation of previous token (sub-word piece)
+```
+
+**Three mandatory inputs to BERT:**
+
+```python
+encoding = tokenizer(
+    text,
+    max_length=128,
+    padding='max_length',
+    truncation=True,
+    return_tensors='pt'
+)
+
+# input_ids      : token integer IDs — [101, 2152, 2668, ..., 102, 0, 0]
+#                  101=[CLS], 102=[SEP], 0=[PAD]
+# attention_mask : 1 for real tokens, 0 for [PAD] — tells BERT to ignore padding
+# token_type_ids : 0 for sentence A, 1 for sentence B (all 0 for single sentences)
+```
+
+---
+
+### Fine-tuning BERT for Classification
+
+BERT fine-tuning adds a linear layer on top of the [CLS] token's final representation:
+
+```python
+from transformers import BertForSequenceClassification
+
+model = BertForSequenceClassification.from_pretrained(
+    'bert-base-uncased',
+    num_labels=5   # adds Linear(768, 5) classification head
+)
+```
+
+**Internal flow during forward pass:**
+
+```
+input_ids (batch × 128)
+    ↓ Token + Segment + Position Embeddings
+    ↓ 12 × Bidirectional Self-Attention + FFN blocks
+    ↓ Output hidden states: (batch × 128 × 768)
+    ↓ Extract [CLS] position 0: (batch × 768)
+    ↓ Pooler: Dense(768→768) + tanh
+    ↓ Dropout(0.1)
+    ↓ Linear(768 → num_labels)
+    ↓ Logits (batch × num_labels)
+```
+
+**BERT fine-tuning hyperparameters (from the original paper):**
+
+| Hyperparameter | Recommended value | Why |
+|---|---|---|
+| Learning rate | 2e-5 to 5e-5 | Higher LRs destroy pre-trained weights |
+| Batch size | 16 or 32 | Paper tested 16, 32 |
+| Epochs | 2–4 | More → overfitting on small data |
+| Warmup | 10% of steps | Stabilises training while classification head is still random |
+| Gradient clip | 1.0 | Prevents exploding gradients through 12 layers |
+
+---
+
+### BERT Fine-tuning Strategies
+
+```
+Strategy 1: Full fine-tuning (recommended, used in this lab)
+  ├── Update: all 110M BERT params + classification head
+  ├── Best accuracy
+  └── Needs: ≥ 100 samples per class, ~500MB GPU RAM
+
+Strategy 2: Frozen backbone (fast prototype)
+  ├── code: for param in model.bert.parameters(): param.requires_grad = False
+  ├── Update: only Linear(768, num_classes) — ~4K params
+  ├── Trains in seconds, lower accuracy
+  └── Good when: very little data, just testing feasibility
+
+Strategy 3: LoRA on BERT (efficient fine-tuning)
+  ├── Update: low-rank adapter matrices (~100K params per layer)
+  ├── Near full fine-tuning quality at fraction of memory
+  └── Use peft library: LoraConfig(target_modules=["query", "value"])
+```
+
+---
+
+### BERT Variants
+
+| Model | Change from BERT | When to use |
+|---|---|---|
+| **DistilBERT** | 6 layers (half), 40% smaller, 60% faster | Production, latency-sensitive |
+| **RoBERTa** | Removed NSP, larger batches, more data | Best accuracy on most benchmarks |
+| **ALBERT** | Parameter sharing across layers, very small | Memory-constrained deployment |
+| **BioBERT** | Pre-trained on PubMed biomedical papers | Medical/clinical text |
+| **ClinicalBERT** | Pre-trained on clinical notes (MIMIC-III) | EHR, clinical NLP |
+| **SciBERT** | Pre-trained on scientific papers | Scientific text classification |
+
+---
+
+### BERT vs GPT — When to Choose Which
+
+```
+Use BERT when:                          Use GPT when:
+  ✅ Sentiment analysis                   ✅ Chatbot / Q&A
+  ✅ Named entity recognition             ✅ Code generation
+  ✅ Text classification (this lab)       ✅ Summarization
+  ✅ Semantic similarity                  ✅ Open-ended generation
+  ✅ Question answering (extractive)      ✅ Translation
+  ✅ Search/retrieval (dense embeddings)  ✅ Creative writing
+
+Rule: Does the task need to UNDERSTAND text? → BERT
+      Does the task need to GENERATE text?  → GPT / LLaMA / Claude
+```
+
+### Interview Questions — BERT
+
+> **Beginner:** What does bidirectional mean in BERT and why does it matter?
+> → Every token in BERT's attention can see every other token (past AND future). This lets the model resolve ambiguity using full context — "bank" near "flooded" vs "bank" near "deposit" gets different representations. GPT can only see past tokens (causal mask).
+
+> **Intermediate:** What is Masked Language Modeling and why does it require bidirectionality?
+> → MLM randomly masks 15% of tokens and trains BERT to predict them. To predict a masked token, the model MUST use both left and right context simultaneously. A left-to-right model cannot see the right context, making it impossible to pre-train this way.
+
+> **Advanced:** Why is the [CLS] token used for classification instead of mean-pooling all tokens?
+> → During NSP pre-training, the [CLS] token's final hidden state was specifically trained to represent sentence-pair relationships (IsNext classification). This specialised training makes it a better sentence-level summary than mean-pooling. However, for some tasks (like semantic search), mean-pooling or max-pooling all token embeddings actually outperforms [CLS] — it depends on the downstream task.
 
 ---
 
