@@ -15,3 +15,4 @@ textblob
 vaderSentiment
 wordcloud
 plotly
+langchain_openai
