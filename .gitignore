@@ -31,3 +31,11 @@ Thumbs.db
 # IDE
 .vscode/
 .idea/
+
+# Large media files
+*.mp3
+*.mp4
+*.mov
+*.wav
+*.flac
+*.m4a
