@@ -15,4 +15,34 @@ textblob
 vaderSentiment
 wordcloud
 plotly
-langchain_openai
+# LangChain ecosystem
+langchain
+langchain-openai
+langchain-core
+langchain-community
+langchain-text-splitters
+
+# OpenAI SDK
+openai
+
+# LangGraph (stateful agent workflows)
+langgraph
+
+# Tokenizer and vector store
+tiktoken
+faiss-cpu
+
+# Structured output
+pydantic
+
+# LangChain Hub (pre-built prompts)
+langchainhub
+
+# Environment variable management
+python-dotenv
+
+# Image processing (required for gpt-image-1 base64 response decoding)
+Pillow
+
+
+pydub
