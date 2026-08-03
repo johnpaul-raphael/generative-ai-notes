@@ -1,7 +1,7 @@
 from text_cleaner import TextCleaner
 from article_validator import ArticleValidator
 from article_summarizer import ArticleSummarizer
-
+from article_chunker import ArticleChunker
 
 class NewsArticleSummarizerApp:
     
@@ -9,6 +9,7 @@ class NewsArticleSummarizerApp:
         self.validator = ArticleValidator()
         self.cleaner = TextCleaner()
         self.summarizer = ArticleSummarizer()
+        self.chunker = ArticleChunker()
 
     # input
     # validate input
@@ -40,16 +41,13 @@ class NewsArticleSummarizerApp:
             # calling llm for summary
             print("="*50)
             print()
-            
             # chunking process
-            # if len(article) < 500:
-            # elif len(article) > 500:
-            
+            chunk_article = self.chunker.chunk(article=article)
             print("="*50)
             print()
             print("calling llm for summary")
             print()
-            result = self.summarizer.summarize(article=article)
+            result = self.summarizer.summarize_article_concurrent(articles=chunk_article)
             print(f"llm response: {result}")
         else:
             raise ValueError("invalid article")
